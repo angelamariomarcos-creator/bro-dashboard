@@ -107,8 +107,9 @@ app.post('/bro-chat', async (req, res) => {
           { role: 'system', content: systemWithMood },
           ...messages
         ],
-        max_tokens: 150,
+        max_tokens: 900,
         temperature: 0.85,
+        reasoning_effort: 'low',
       }),
     });
 
@@ -124,7 +125,16 @@ app.post('/bro-chat', async (req, res) => {
     }
 
     const data = await response.json();
-    const text = data.choices[0].message.content;
+    let text = data.choices[0].message.content;
+
+    // Salvaguarda: si el modelo se queda sin tokens para la respuesta final
+    // (le pasa a veces con peticiones largas, como pedir varios ejercicios),
+    // evitamos mandar una burbuja vacía al chat.
+    if (!text || !text.trim()) {
+      console.error('Respuesta vacía de Groq. Payload completo:', JSON.stringify(data));
+      text = 'Ey Mario, se me ha ido la pinza un momento montando la respuesta. Dale otra vez al mensaje, anda 🤙';
+    }
+
     res.json({ reply: text });
 
   } catch (error) {
