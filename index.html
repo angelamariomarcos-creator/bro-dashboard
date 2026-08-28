@@ -126,19 +126,19 @@
           <div class="tareas-lista" id="tareasList">
             <label class="tarea-item">
               <input type="checkbox" class="tarea-check" onchange="onTareaChange(); trackSubjectCompletion(this)" />
-              <span class="tarea-nombre">Matemáticas</span>
+              <span class="tarea-nombre" onclick="event.preventDefault(); event.stopPropagation(); pedirEjerciciosDe('Matemáticas')" style="cursor:pointer;" title="Toca para pedirle ejercicios a Bro">Matemáticas</span>
               <button type="button" class="mastery-btn" data-subject="Matemáticas" onclick="event.preventDefault(); cycleMastery(this)" title="¿Cómo lo llevas? Toca para cambiar">❔</button>
               <span class="tarea-tiempo">15 min</span>
             </label>
             <label class="tarea-item">
               <input type="checkbox" class="tarea-check" onchange="onTareaChange(); trackSubjectCompletion(this)" />
-              <span class="tarea-nombre">Historia</span>
+              <span class="tarea-nombre" onclick="event.preventDefault(); event.stopPropagation(); pedirEjerciciosDe('Historia')" style="cursor:pointer;" title="Toca para pedirle ejercicios a Bro">Historia</span>
               <button type="button" class="mastery-btn" data-subject="Historia" onclick="event.preventDefault(); cycleMastery(this)" title="¿Cómo lo llevas? Toca para cambiar">❔</button>
               <span class="tarea-tiempo">15 min</span>
             </label>
             <label class="tarea-item">
               <input type="checkbox" class="tarea-check" onchange="onTareaChange(); trackSubjectCompletion(this)" />
-              <span class="tarea-nombre">Lengua</span>
+              <span class="tarea-nombre" onclick="event.preventDefault(); event.stopPropagation(); pedirEjerciciosDe('Lengua')" style="cursor:pointer;" title="Toca para pedirle ejercicios a Bro">Lengua</span>
               <button type="button" class="mastery-btn" data-subject="Lengua" onclick="event.preventDefault(); cycleMastery(this)" title="¿Cómo lo llevas? Toca para cambiar">❔</button>
               <span class="tarea-tiempo">15 min</span>
             </label>

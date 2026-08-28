@@ -2,6 +2,7 @@
    BRO DASHBOARD — MAIN.JS v2
    Mes 2: persistencia, bonus, memoria de Bro
    Mes 3: control real de Spotify (pausa automática)
+   Mes 3b: pedir ejercicios directamente desde Misiones
    ============================================= */
 
 'use strict';
@@ -524,6 +525,25 @@ async function sendMessage() {
   input.value = '';
   addUserMessage(text);
   const reply = await getBroReply(text);
+  addBroMessage(reply);
+}
+
+// ─── PEDIR EJERCICIOS DESDE MISIONES ──────────
+// Al pinchar el nombre de una asignatura en "Misiones de hoy", se lanza
+// automáticamente en el chat la misma petición que Mario escribiría a mano.
+// Reutiliza el mismo mecanismo (addUserMessage + getBroReply + addBroMessage).
+const NUM_EJERCICIOS_MISIONES = 3;
+
+async function pedirEjerciciosDe(subject) {
+  const chatInput = document.getElementById('chatInput');
+  if (!chatInput || chatInput.disabled) {
+    // Bro todavía no está disponible: falta elegir el mood de hoy
+    return;
+  }
+
+  const texto = `Bro, ponme ${NUM_EJERCICIOS_MISIONES} ejercicios de ${subject} para practicar ahora mismo, con la solución al final de cada uno`;
+  addUserMessage(texto);
+  const reply = await getBroReply(texto);
   addBroMessage(reply);
 }
 
