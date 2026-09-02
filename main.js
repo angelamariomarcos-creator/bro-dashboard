@@ -2,7 +2,6 @@
    BRO DASHBOARD — MAIN.JS v2
    Mes 2: persistencia, bonus, memoria de Bro
    Mes 3: control real de Spotify (pausa automática)
-   Mes 3b: pedir ejercicios directamente desde Misiones
    ============================================= */
 
 'use strict';
@@ -222,6 +221,24 @@ function trackSubjectCompletion(checkbox) {
   saveSubjectCompletions(completions);
 }
 
+// ─── PEDIR EJERCICIOS DIRECTOS DESDE MISIONES ──
+// Al pinchar en el nombre de una asignatura, se lo pide a Bro
+// automáticamente en el chat, como si Mario lo hubiera escrito.
+async function pedirEjerciciosDe(el) {
+  const subject = el.textContent.trim();
+  const input = document.getElementById('chatInput');
+
+  if (!input || input.disabled) {
+    alert('Primero selecciona tu estado de ánimo para poder hablar con Bro.');
+    return;
+  }
+
+  const texto = `Ponme un ejercicio de ${subject} para practicar ahora`;
+  addUserMessage(texto);
+  const reply = await getBroReply(texto);
+  addBroMessage(reply);
+}
+
 
 
 // ─── NIVEL DE DOMINIO POR ASIGNATURA ──────────
@@ -428,6 +445,7 @@ function selectMood(mood, btn) {
       } else {
         addBroMessage(greetingFirst(mood));
       }
+      mostrarOnboardingSiPrimeraVez();
     }, 300);
   }, 400);
 }
@@ -468,6 +486,18 @@ function greetingReturn(mood) {
     rojo:     'Oye, que volviste. Eso ya es un punto. ¿Le damos aunque sea un poquito?',
   };
   return map[mood] || '¡Bienvenido de vuelta, Mario!';
+}
+
+// ─── ONBOARDING — explicación única, solo la primera vez ─
+function mostrarOnboardingSiPrimeraVez() {
+  if (localStorage.getItem('bro_onboarding_shown')) return;
+  localStorage.setItem('bro_onboarding_shown', '1');
+
+  setTimeout(() => {
+    addBroMessage(
+      '🎮 Ey, una chuletilla rápida antes de nada: los "Jefes de examen" (a la derecha) son tus exámenes con barra de vida — cada bloque de 15 min les hace daño hasta derrotarlos. El temporizador es para currar en bloques de 15 min con descansos de 5. Y los checkboxes de "Misiones de hoy" los marcas SOLO cuando de verdad hayas terminado esa asignatura. ¡Ya está, ya lo sabes todo! ¿Le damos?'
+    );
+  }, 2600);
 }
 
 // ─── CHAT ─────────────────────────────────────
@@ -525,25 +555,6 @@ async function sendMessage() {
   input.value = '';
   addUserMessage(text);
   const reply = await getBroReply(text);
-  addBroMessage(reply);
-}
-
-// ─── PEDIR EJERCICIOS DESDE MISIONES ──────────
-// Al pinchar el nombre de una asignatura en "Misiones de hoy", se lanza
-// automáticamente en el chat la misma petición que Mario escribiría a mano.
-// Reutiliza el mismo mecanismo (addUserMessage + getBroReply + addBroMessage).
-const NUM_EJERCICIOS_MISIONES = 3;
-
-async function pedirEjerciciosDe(subject) {
-  const chatInput = document.getElementById('chatInput');
-  if (!chatInput || chatInput.disabled) {
-    // Bro todavía no está disponible: falta elegir el mood de hoy
-    return;
-  }
-
-  const texto = `Bro, ponme ${NUM_EJERCICIOS_MISIONES} ejercicios de ${subject} para practicar ahora mismo, con la solución al final de cada uno`;
-  addUserMessage(texto);
-  const reply = await getBroReply(texto);
   addBroMessage(reply);
 }
 
