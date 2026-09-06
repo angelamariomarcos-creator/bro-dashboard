@@ -10,6 +10,83 @@
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+
+  <!-- TOOLTIPS ESTILO POST-IT — explicación al pasar el ratón -->
+  <style>
+    .bro-help {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(26,26,46,0.15);
+      color: rgba(26,26,46,0.75);
+      font-size: 11px;
+      font-weight: 800;
+      font-family: 'Nunito', sans-serif;
+      cursor: help;
+      margin-left: 5px;
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+    .bro-help::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: 135%;
+      left: 50%;
+      transform: translateX(-50%) scale(0.92) rotate(-1deg);
+      background: #FFF176;
+      background-image: repeating-linear-gradient(
+        transparent, transparent 18px,
+        rgba(180,160,0,0.15) 18px, rgba(180,160,0,0.15) 19px
+      );
+      color: #1A1A2E;
+      padding: 10px 12px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.45;
+      width: 195px;
+      text-align: left;
+      box-shadow: 2px 3px 6px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.5) inset;
+      border: 1px solid rgba(0,0,0,0.12);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      z-index: 80;
+    }
+    .bro-help::before {
+      content: '';
+      position: absolute;
+      bottom: 122%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: #FFF176;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+      z-index: 80;
+    }
+    .bro-help:hover::after {
+      opacity: 1;
+      transform: translateX(-50%) scale(1) rotate(-1deg);
+    }
+    .bro-help:hover::before { opacity: 1; }
+
+    /* Variante: tooltip alineado a la derecha del icono (columna izquierda, evita cortarse con el borde) */
+    .bro-help-right::after { left: 0; transform: translateX(0) scale(0.92) rotate(-1deg); }
+    .bro-help-right:hover::after { transform: translateX(0) scale(1) rotate(-1deg); }
+    .bro-help-right::before { left: 10px; transform: none; }
+
+    /* Variante: tooltip alineado a la izquierda del icono (columna derecha) */
+    .bro-help-left::after { left: auto; right: 0; transform: translateX(0) scale(0.92) rotate(-1deg); }
+    .bro-help-left:hover::after { transform: translateX(0) scale(1) rotate(-1deg); }
+    .bro-help-left::before { left: auto; right: 10px; transform: none; }
+  </style>
+</head>
 <body>
 
   <!-- GRAFFITIS DE FONDO — imágenes reales PNG -->
@@ -75,6 +152,7 @@
           <div class="postit-header">
             <span class="postit-icon">🏆</span>
             <span class="postit-title">Logros</span>
+            <span class="bro-help bro-help-right" data-tip="Aquí ves los logros que has desbloqueado, tu racha de días seguidos estudiando y el total de minutos acumulados.">?</span>
           </div>
           <div class="logros-lista" id="logrosList">
             <!-- Se renderizan dinámicamente desde main.js -->
@@ -97,7 +175,9 @@
             </div>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px dashed rgba(26,26,46,0.2);">
-            <span style="font-size:13px;font-weight:800;color:var(--night);">🪙 <span id="coinsDisplay">0</span> monedas</span>
+            <span style="font-size:13px;font-weight:800;color:var(--night);">🪙 <span id="coinsDisplay">0</span> monedas
+              <span class="bro-help bro-help-right" data-tip="Ganas 10 monedas por cada bloque de 15 min de estudio completado. Gástalas en cambiar el color de Bro Dashboard.">?</span>
+            </span>
             <button type="button" onclick="personalizarColor()" style="border:none;background:rgba(26,26,46,0.08);border-radius:8px;padding:5px 9px;font-size:11px;font-weight:800;color:rgba(26,26,46,0.6);cursor:pointer;">🎨 Personalizar</button>
           </div>
         </div>
@@ -107,6 +187,7 @@
           <div class="stats-card-header">
             <span class="stats-card-icon">📊</span>
             <span class="stats-card-title">Esta semana</span>
+            <span class="bro-help bro-help-right" data-tip="Minutos reales de estudio por cada día de la última semana. Cuantas más barras largas, mejor ritmo llevas.">?</span>
           </div>
           <div class="stats-chart-wrap">
             <canvas id="statsChart"></canvas>
@@ -119,6 +200,7 @@
           <div class="postit-header">
             <span class="postit-icon">🎯</span>
             <span class="postit-title">Misiones de hoy</span>
+            <span class="bro-help bro-help-right" data-tip="Marca cada asignatura cuando la termines de verdad. Toca el nombre para que Bro te dé un ejercicio ahora mismo, y el emoji ❔ para decir cómo lo llevas.">?</span>
           </div>
           <a class="aula-btn" href="http://www.iessanfernando.com/" target="_blank" rel="noopener">
             🔗 Aula Virtual San Fernando
@@ -183,12 +265,14 @@
                 <span class="bro-name">Bro</span>
                 <span class="bro-status">● Online</span>
               </div>
+              <span class="bro-help" data-tip="Bro es tu tutor de IA. Chatea con él, pídele ejercicios, cuéntale cómo va tu día. Se adapta a tu asignatura y a tu estado de ánimo.">?</span>
             </div>
             <div class="chat-streak">
               <span class="streak-fire">🔥</span>
               <span class="streak-num" id="streakNum">1</span>
               <span class="streak-label">día seguido</span>
               <span class="comodin-badge" id="comodinBadge" title="Tienes un comodín disponible: si fallas un día, tu racha se salva">🛡️</span>
+              <span class="bro-help bro-help-left" data-tip="Días seguidos completando todas tus misiones. Tienes 1 comodín al mes que salva la racha aunque falles un día.">?</span>
             </div>
           </div>
 
@@ -222,7 +306,10 @@
 
         <!-- POMODORO TIMER -->
         <div class="timer-card">
-          <div class="timer-mode-label" id="timerModeLabel">ENFOQUE</div>
+          <div class="timer-mode-label" id="timerModeLabel">
+            ENFOQUE
+            <span class="bro-help bro-help-left" data-tip="Técnica Pomodoro: 15 min de estudio concentrado, luego 5 min de descanso. Dale al play para empezar un bloque.">?</span>
+          </div>
           <div class="timer-visual">
             <svg class="timer-svg" viewBox="0 0 200 200">
               <circle class="timer-track" cx="100" cy="100" r="85" />
@@ -272,6 +359,7 @@
           <div class="boss-header">
             <span class="boss-icon">👾</span>
             <span class="boss-title">Jefes de examen</span>
+            <span class="bro-help bro-help-left" data-tip="Convierte tus exámenes en 'jefes' con barra de vida. Cada bloque de 15 min completado les hace daño a todos, hasta derrotarlos.">?</span>
           </div>
           <div class="bosses-list" id="bossesList">
             <p class="boss-empty">Sin jefes activos</p>
@@ -284,6 +372,7 @@
           <div class="spotify-header">
             <span class="spotify-icon-emoji">🎵</span>
             <span class="spotify-title">Música</span>
+            <span class="bro-help bro-help-left" data-tip="Música de fondo para concentrarte. Se pausa sola al empezar un bloque de estudio y vuelve en los descansos.">?</span>
           </div>
 
           <div class="music-tabs">
