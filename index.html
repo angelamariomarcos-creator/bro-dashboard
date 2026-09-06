@@ -13,17 +13,20 @@
 
   <!-- TOOLTIPS ESTILO POST-IT — explicación al pasar el ratón -->
   <style>
+    /* Evita que las columnas recorten los post-its de ayuda al salirse del borde */
+    .col { overflow-x: visible !important; }
+
     .bro-help {
       position: relative;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 16px;
-      height: 16px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       background: rgba(26,26,46,0.15);
       color: rgba(26,26,46,0.75);
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 800;
       font-family: 'Nunito', sans-serif;
       cursor: help;
@@ -31,10 +34,17 @@
       flex-shrink: 0;
       vertical-align: middle;
     }
+    /* Zona de "colchón" invisible alrededor del icono, para que sea fácil pasar por encima sin apuntar fino */
+    .bro-help::marker { content: none; }
+    .bro-help {
+      padding: 6px;
+      margin: -6px -6px -6px 0;
+      background-clip: content-box;
+    }
     .bro-help::after {
       content: attr(data-tip);
       position: absolute;
-      bottom: 135%;
+      bottom: 145%;
       left: 50%;
       transform: translateX(-50%) scale(0.92) rotate(-1deg);
       background: #FFF176;
@@ -48,7 +58,8 @@
       font-size: 12px;
       font-weight: 600;
       line-height: 1.45;
-      width: 195px;
+      width: 170px;
+      max-width: 60vw;
       text-align: left;
       box-shadow: 2px 3px 6px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.5) inset;
       border: 1px solid rgba(0,0,0,0.12);
@@ -60,7 +71,7 @@
     .bro-help::before {
       content: '';
       position: absolute;
-      bottom: 122%;
+      bottom: 132%;
       left: 50%;
       transform: translateX(-50%);
       border: 6px solid transparent;
