@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -10,9 +10,7 @@
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-
   <style>
-    /* Estilos del panel C�MO USAR BRO */
     .help-card {
       background: #FFF9C4;
       border: 2px solid rgba(26,26,46,0.15);
@@ -21,7 +19,6 @@
       margin-top: 15px;
       box-shadow: 3px 4px 10px rgba(0,0,0,0.1);
     }
-
     .help-title {
       font-family: 'Permanent Marker', cursive, sans-serif;
       font-size: 16px;
@@ -31,7 +28,6 @@
       align-items: center;
       gap: 8px;
     }
-
     .help-accordion details {
       background: rgba(255,255,255,0.7);
       border-radius: 8px;
@@ -41,11 +37,9 @@
       border: 1px solid rgba(0,0,0,0.06);
       transition: background 0.2s ease;
     }
-
     .help-accordion details[open] {
       background: #ffffff;
     }
-
     .help-accordion summary {
       font-weight: 700;
       font-size: 13px;
@@ -53,7 +47,6 @@
       outline: none;
       user-select: none;
     }
-
     .help-accordion p {
       font-size: 12px;
       color: #444;
@@ -64,7 +57,6 @@
 </head>
 <body>
 
-  <!-- GRAFFITIS DE FONDO — imágenes reales PNG -->
   <div class="graffiti-layer" aria-hidden="true">
     <img class="graff-img graff-chiki"   src="graff-chiki.png"   alt="" />
     <img class="graff-img graff-scooter" src="graff-scooter.png" alt="" />
@@ -72,7 +64,6 @@
     <img class="graff-img graff-brozone" src="graff-brozone.png" alt="" />
   </div>
 
-  <!-- OVERLAY MOOD — obligatorio al entrar -->
   <div class="mood-overlay" id="moodOverlay">
     <div class="mood-card">
       <p class="mood-eyebrow">Antes de nada, Mario</p>
@@ -94,7 +85,6 @@
     </div>
   </div>
 
-  <!-- SCOOTER WIN SCREEN -->
   <div class="win-screen" id="winScreen">
     <div class="win-content">
       <div class="win-scooter">🛴</div>
@@ -104,32 +94,25 @@
     </div>
   </div>
 
-  <!-- MAIN LAYOUT -->
   <div class="app" id="app">
 
-    <!-- HEADER -->
     <header class="app-header">
       <div class="header-logo">BRO<span class="header-dot">.</span></div>
       <div class="header-date" id="headerDate"></div>
       <div class="header-mood-indicator" id="moodIndicator"></div>
     </header>
 
-    <!-- GRID 3 COLUMNAS -->
     <main class="grid">
 
-      <!-- COLUMNA IZQUIERDA — Post-its -->
       <aside class="col col-left">
 
-        <!-- Post-it Amarillo: Logros -->
         <div class="postit postit-yellow">
           <div class="postit-pin"></div>
           <div class="postit-header">
             <span class="postit-icon">🏆</span>
             <span class="postit-title">Logros</span>
           </div>
-          <div class="logros-lista" id="logrosList">
-            <!-- Se renderizan dinámicamente desde main.js -->
-          </div>
+          <div class="logros-lista" id="logrosList"></div>
           <div class="stats-mini" id="statsMini">
             <div class="stat-item">
               <span class="stat-icon">🔥</span>
@@ -153,7 +136,6 @@
           </div>
         </div>
 
-        <!-- ESTADÍSTICAS — gráfico semanal -->
         <div class="stats-card">
           <div class="stats-card-header">
             <span class="stats-card-icon">📊</span>
@@ -164,7 +146,6 @@
           </div>
         </div>
 
-        <!-- Post-it Cyan: Misiones del día -->
         <div class="postit postit-cyan">
           <div class="postit-pin"></div>
           <div class="postit-header">
@@ -200,21 +181,44 @@
           <p class="progreso-texto" id="progresoTexto">0 / 3 tareas</p>
         </div>
 
-        <!-- Post-it Rosa: Horario mañana -->
         <div class="postit postit-pink">
           <div class="postit-pin"></div>
           <div class="postit-header">
-            <span class="postit-icon">??</span>
-            <span class="postit-title">Ma�ana en el insti</span>
+            <span class="postit-icon">🎒</span>
+            <span class="postit-title">Mañana en el insti</span>
           </div>
-          <p class="horario-aviso">�Ya estamos en septiembre! ??<br>A�ade aqu� tu horario escolar.</p>
-          <button type="button" class="export-btn" style="margin-top:10px;width:100%;font-size:12px;" onclick="alert('Funci�n para adjuntar o escribir horario disponible muy pronto');">? A�adir horario</button>
+          <p class="horario-aviso">¡Ya estamos en septiembre! 📚<br>Añade aquí tu horario escolar.</p>
+          <button type="button" class="export-btn" style="margin-top:10px;width:100%;font-size:12px;" onclick="alert('Función para añadir horario disponible muy pronto');">➕ Añadir horario</button>
         </div>
+
+        <button class="export-btn" onclick="exportarProgreso()">
+          💾 Exportar progreso (backup)
+        </button>
+        <button class="export-btn" onclick="document.getElementById('importFile').click()">
+          📂 Importar progreso
+        </button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importarProgreso(this)" />
+
+      </aside>
+
+      <section class="col col-mid">
+        <div class="chat-container">
+          <div class="chat-header">
+            <div class="bro-avatar">
+              <div class="avatar-circle" style="position:relative;">
+                <img src="bro-avatar.png" alt="Bro" style="width:100%;height:100%;object-fit:cover;object-position:top center;" />
+                <span id="avatarBadge" style="position:absolute;bottom:-2px;right:-2px;font-size:16px;display:none;background:#fff;border-radius:50%;width:22px;height:22px;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></span>
+              </div>
+              <div class="bro-info">
+                <span class="bro-name">Bro</span>
+                <span class="bro-status">● Online</span>
+              </div>
+            </div>
             <div class="chat-streak">
               <span class="streak-fire">🔥</span>
               <span class="streak-num" id="streakNum">1</span>
               <span class="streak-label">día seguido</span>
-              <span class="comodin-badge" id="comodinBadge" title="Tienes un comodín disponible: si fallas un día, tu racha se salva">🛡️</span>
+              <span class="comodin-badge" id="comodinBadge" title="Tienes un comodín disponible">🛡️</span>
             </div>
           </div>
 
@@ -243,10 +247,8 @@
         </div>
       </section>
 
-      <!-- COLUMNA DERECHA — Timer, Jefes, Músicas y Ayuda -->
       <aside class="col col-right">
 
-        <!-- POMODORO TIMER -->
         <div class="timer-card">
           <div class="timer-mode-label" id="timerModeLabel">
             ENFOQUE
@@ -295,7 +297,6 @@
           <p class="timer-cycles-label">bloques completados</p>
         </div>
 
-        <!-- JEFES DE EXAMEN — barra HP -->
         <div class="boss-card">
           <div class="boss-header">
             <span class="boss-icon">👾</span>
@@ -307,7 +308,6 @@
           <button class="boss-new-btn" onclick="nuevoJefe()">+ Nuevo jefe de examen</button>
         </div>
 
-        <!-- MÚSICA -->
         <div class="spotify-card">
           <div class="spotify-header">
             <span class="spotify-icon-emoji">🎵</span>
@@ -343,7 +343,6 @@
           </div>
         </div>
 
-        <!-- SECCIÓN GUÍA: CÓMO USAR BRO -->
         <div class="help-card">
           <div class="help-title">📖 CÓMO USAR BRO</div>
           <div class="help-accordion">
@@ -361,7 +360,7 @@
             </details>
             <details>
               <summary>💬 Chat con Bro</summary>
-              <p>Tu tutor inteligente personal. Pregúntale dudas, pídela que te repase la lección o haz ejercicios adaptados a tu ánimo.</p>
+              <p>Tu tutor inteligente personal. Pregúntale dudas, pídele que te repase la lección o haz ejercicios adaptados a tu ánimo.</p>
             </details>
             <details>
               <summary>⏱️ Reloj Enfoque</summary>
@@ -381,5 +380,3 @@
   <script src="main.js"></script>
 </body>
 </html>
-
-
