@@ -13,8 +13,16 @@
 
   <!-- TOOLTIPS ESTILO POST-IT — explicación al pasar el ratón -->
   <style>
+    /* Permite que los post-its salgan de la pantalla horizontalmente sin recortarse */
+    html, body {
+      overflow-x: visible !important;
+      overflow-y: hidden !important;
+    }
+
     /* Evita que las columnas recorten los post-its de ayuda al salirse del borde */
-    .col { overflow-x: visible !important; }
+    .col {
+      overflow-x: visible !important;
+    }
 
     .bro-help {
       position: relative;
@@ -33,14 +41,13 @@
       margin-left: 5px;
       flex-shrink: 0;
       vertical-align: middle;
-    }
-    /* Zona de "colchón" invisible alrededor del icono, para que sea fácil pasar por encima sin apuntar fino */
-    .bro-help::marker { content: none; }
-    .bro-help {
       padding: 6px;
       margin: -6px -6px -6px 0;
       background-clip: content-box;
     }
+
+    .bro-help::marker { content: none; }
+
     .bro-help::after {
       content: attr(data-tip);
       position: absolute;
@@ -58,7 +65,7 @@
       font-size: 12px;
       font-weight: 600;
       line-height: 1.45;
-      width: 170px;
+      width: 160px;
       max-width: 60vw;
       text-align: left;
       box-shadow: 2px 3px 6px rgba(0,0,0,0.28), 0 1px 0 rgba(255,255,255,0.5) inset;
@@ -66,8 +73,9 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.15s ease, transform 0.15s ease;
-      z-index: 80;
+      z-index: 9999;
     }
+
     .bro-help::before {
       content: '';
       position: absolute;
@@ -79,8 +87,9 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.15s ease;
-      z-index: 80;
+      z-index: 9999;
     }
+
     .bro-help:hover::after {
       opacity: 1;
       transform: translateX(-50%) scale(1) rotate(-1deg);
