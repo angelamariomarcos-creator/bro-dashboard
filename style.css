@@ -1339,4 +1339,76 @@ html, body {
 }
 .bro-help-left:hover::after {
   transform: translateX(0) scale(1) rotate(-1deg) !important;
+}git add style.css/* --- FIX TOOLTIPS POST-IT DEFINITIVO --- */
+html, body {
+  overflow-x: visible !important;
+}
+
+.col {
+  overflow: visible !important;
+}
+
+.bro-help {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  background: rgba(26,26,46,0.15) !important;
+  color: rgba(26,26,46,0.75) !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  cursor: help !important;
+  margin-left: 5px !important;
+  flex-shrink: 0 !important;
+  z-index: 999 !important;
+}
+
+.bro-help::after {
+  content: attr(data-tip) !important;
+  position: absolute !important;
+  bottom: 135% !important;
+  left: 0 !important;
+  right: auto !important;
+  transform: translateX(0) scale(0.95) rotate(-1deg) !important;
+  background: #FFF176 !important;
+  background-image: repeating-linear-gradient(
+    transparent, transparent 18px,
+    rgba(180,160,0,0.15) 18px, rgba(180,160,0,0.15) 19px
+  ) !important;
+  color: #1A1A2E !important;
+  padding: 10px 12px !important;
+  border-radius: 3px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1.45 !important;
+  width: 160px !important;
+  max-width: 60vw !important;
+  text-align: left !important;
+  box-shadow: 2px 3px 6px rgba(0,0,0,0.28) !important;
+  border: 1px solid rgba(0,0,0,0.12) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.15s ease, transform 0.15s ease !important;
+  z-index: 99999 !important;
+}
+
+.bro-help:hover::after {
+  opacity: 1 !important;
+  transform: translateX(0) scale(1) rotate(-1deg) !important;
+}
+
+/* Columna derecha: se abren hacia la izquierda */
+.col-right .bro-help::after,
+.bro-help-left::after {
+  left: auto !important;
+  right: 0 !important;
+  transform: translateX(0) scale(0.95) rotate(-1deg) !important;
+}
+
+.col-right .bro-help:hover::after,
+.bro-help-left:hover::after {
+  transform: translateX(0) scale(1) rotate(-1deg) !important;
 }
