@@ -204,37 +204,12 @@
         <div class="postit postit-pink">
           <div class="postit-pin"></div>
           <div class="postit-header">
-            <span class="postit-icon">ğŸ’</span>
-            <span class="postit-title">MaÃ±ana en el insti</span>
+            <span class="postit-icon">??</span>
+            <span class="postit-title">Mañana en el insti</span>
           </div>
-          <p class="horario-aviso">El horario llega en septiembre.<br>De momentoâ€¦ <strong>disfruta el verano bro ğŸŒŠ</strong></p>
+          <p class="horario-aviso">¡Ya estamos en septiembre! ??<br>Añade aquí tu horario escolar.</p>
+          <button type="button" class="export-btn" style="margin-top:10px;width:100%;font-size:12px;" onclick="alert('Función para adjuntar o escribir horario disponible muy pronto');">? Añadir horario</button>
         </div>
-
-        <!-- EXPORTAR / IMPORTAR PROGRESO â€” backup manual -->
-        <button class="export-btn" onclick="exportarProgreso()">
-          ğŸ’¾ Exportar progreso (backup)
-        </button>
-        <button class="export-btn" onclick="document.getElementById('importFile').click()">
-          ğŸ“‚ Importar progreso
-        </button>
-        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importarProgreso(this)" />
-
-      </aside>
-
-      <!-- COLUMNA CENTRAL â€” Chatbot Bro -->
-      <section class="col col-mid">
-        <div class="chat-container">
-          <div class="chat-header">
-            <div class="bro-avatar">
-              <div class="avatar-circle" style="position:relative;">
-                <img src="bro-avatar.png" alt="Bro" style="width:100%;height:100%;object-fit:cover;object-position:top center;" />
-                <span id="avatarBadge" style="position:absolute;bottom:-2px;right:-2px;font-size:16px;display:none;background:#fff;border-radius:50%;width:22px;height:22px;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.3);"></span>
-              </div>
-              <div class="bro-info">
-                <span class="bro-name">Bro</span>
-                <span class="bro-status">â— Online</span>
-              </div>
-            </div>
             <div class="chat-streak">
               <span class="streak-fire">ğŸ”¥</span>
               <span class="streak-num" id="streakNum">1</span>
@@ -406,3 +381,4 @@
   <script src="main.js"></script>
 </body>
 </html>
+
