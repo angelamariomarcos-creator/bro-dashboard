@@ -180,7 +180,7 @@ function yesterdayKey() {
 
 function getProgress() {
   const key = 'bro_progress_' + todayKey();
-  return JSON.parse(localStorage.getItem(key) || 'null');
+  return safeGetStorage(key, null);
 }
 
 function saveProgress(data) {
@@ -190,7 +190,7 @@ function saveProgress(data) {
 
 function getYesterdayProgress() {
   const key = 'bro_progress_' + yesterdayKey();
-  return JSON.parse(localStorage.getItem(key) || 'null');
+  return safeGetStorage(key, null);
 }
 
 function getStreak() {
@@ -201,7 +201,7 @@ function getStreak() {
 const MASTERY_DOMINADO_MINIMO = 3;
 
 function getSubjectCompletions() {
-  return JSON.parse(localStorage.getItem('bro_subject_completions') || '{}');
+  return safeGetStorage('bro_subject_completions', {});
 }
 
 function saveSubjectCompletions(data) {
@@ -241,7 +241,7 @@ const MASTERY_EMOJI = { sin_empezar: '❔', en_progreso: '🙂', dominado: '😎
 const MASTERY_LABEL = { sin_empezar: 'Sin empezar', en_progreso: 'Mejorando', dominado: '¡Lo domino!' };
 
 function getMastery() {
-  return JSON.parse(localStorage.getItem('bro_mastery') || '{}');
+  return safeGetStorage('bro_mastery', {});
 }
 
 function saveMastery(mastery) {
@@ -371,7 +371,7 @@ function buildBroContext() {
 // ─── INIT DESDE STORAGE ───────────────────────
 function loadFromStorage() {
   const today = todayKey();
-  const saved = JSON.parse(localStorage.getItem('bro_day_' + today) || 'null');
+  const saved = safeGetStorage('bro_day_' + today, null);
   const prog  = getProgress();
   const streak = getStreak();
 
@@ -616,7 +616,7 @@ const LOGROS_DEF = [
 ];
 
 function getLogros() {
-  return JSON.parse(localStorage.getItem('bro_logros') || '[]');
+  return safeGetStorage('bro_logros', []);
 }
 
 function desbloquearLogro(id) {
@@ -746,7 +746,7 @@ function renderStatsChart() {
 
 // ─── JEFES DE EXAMEN — barra HP (varios a la vez) ─
 function getBosses() {
-  return JSON.parse(localStorage.getItem('bro_bosses') || '[]');
+  return safeGetStorage('bro_bosses', []);
 }
 
 function saveBosses(bosses) {
@@ -866,7 +866,7 @@ const COLOR_OPTIONS = {
 };
 
 function getColoresDesbloqueados() {
-  return JSON.parse(localStorage.getItem('bro_colores_desbloqueados') || '["naranja"]');
+  return safeGetStorage('bro_colores_desbloqueados', ['naranja']);
 }
 
 function personalizarColor() {
@@ -1233,4 +1233,7 @@ function importarProgreso(input) {
   reader.readAsText(file);
   input.value = '';
 }
+
+
+
 
