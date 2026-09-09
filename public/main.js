@@ -1,4 +1,4 @@
-/* =============================================
+﻿/* =============================================
    BRO DASHBOARD — MAIN.JS v2
    Mes 2: persistencia, bonus, memoria de Bro
    Mes 3: control real de Spotify (pausa automática)
@@ -539,12 +539,26 @@ function onInputKeydown(e) {
 
 async function sendMessage() {
   const input = document.getElementById('chatInput');
-  const text  = input.value.trim();
-  if (!text) return;
+  const btnSend = document.getElementById('chatSend');
+  const text = input ? input.value.trim() : '';
+  if (!text || (input && input.disabled)) return;
+
   input.value = '';
+  input.disabled = true;
+  if (btnSend) btnSend.disabled = true;
+  const originalPlaceholder = input.placeholder;
+  input.placeholder = 'Bro está pensando...';
+
   addUserMessage(text);
-  const reply = await getBroReply(text);
-  addBroMessage(reply);
+  try {
+    const reply = await getBroReply(text);
+    addBroMessage(reply);
+  } finally {
+    input.disabled = false;
+    if (btnSend) btnSend.disabled = false;
+    input.placeholder = originalPlaceholder;
+    input.focus();
+  }
 }
 
 // ─── GROQ API ─────────────────────────────────
@@ -1233,6 +1247,8 @@ function importarProgreso(input) {
   reader.readAsText(file);
   input.value = '';
 }
+
+
 
 
 
