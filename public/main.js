@@ -198,8 +198,6 @@ function getStreak() {
 }
 
 // ─── VERIFICACIÓN REAL DE TRABAJO POR ASIGNATURA ─
-// Cuenta cuántas veces se ha marcado esa tarea como hecha de verdad,
-// para que "dominado" no sea solo lo que Mario diga, sino algo currado.
 const MASTERY_DOMINADO_MINIMO = 3;
 
 function getSubjectCompletions() {
@@ -222,8 +220,6 @@ function trackSubjectCompletion(checkbox) {
 }
 
 // ─── PEDIR EJERCICIOS DIRECTOS DESDE MISIONES ──
-// Al pinchar en el nombre de una asignatura, se lo pide a Bro
-// automáticamente en el chat, como si Mario lo hubiera escrito.
 async function pedirEjerciciosDe(el) {
   const subject = el.textContent.trim();
   const input = document.getElementById('chatInput');
@@ -239,10 +235,7 @@ async function pedirEjerciciosDe(el) {
   addBroMessage(reply);
 }
 
-
-
 // ─── NIVEL DE DOMINIO POR ASIGNATURA ──────────
-// Sin presión, sin examen: Mario lo marca cuando quiere.
 const MASTERY_ORDER = ['sin_empezar', 'en_progreso', 'dominado'];
 const MASTERY_EMOJI = { sin_empezar: '❔', en_progreso: '🙂', dominado: '😎' };
 const MASTERY_LABEL = { sin_empezar: 'Sin empezar', en_progreso: 'Mejorando', dominado: '¡Lo domino!' };
@@ -267,7 +260,7 @@ function cycleMastery(btn) {
     if (completions < MASTERY_DOMINADO_MINIMO) {
       const faltan = MASTERY_DOMINADO_MINIMO - completions;
       addBroMessage(`Ey Mario, para decir que dominas ${subject} de verdad necesitas completarla ${faltan} ${faltan === 1 ? 'vez' : 'veces'} más marcándola como hecha. Nada de trampas, bro — currando se nota más que diciéndolo 💪`);
-      return; // no avanzamos, se queda en "en progreso"
+      return;
     }
   }
 
@@ -297,8 +290,6 @@ function initMasteryButtons() {
   });
 }
 
-
-
 // ─── COMODÍN DE RACHA — 1 al mes ──────────────
 function currentMonthKey() {
   return new Date().toISOString().slice(0, 7); // 'YYYY-MM'
@@ -327,8 +318,6 @@ function saveStreak(n) {
 }
 
 // ─── EVOLUCIÓN VISUAL DEL AVATAR ───────────────
-// Sin necesitar imágenes nuevas: una insignia que va cambiando
-// según la racha y los logros conseguidos, para que se note el progreso.
 function updateAvatarBadge() {
   const badge  = document.getElementById('avatarBadge');
   if (!badge) return;
@@ -337,9 +326,9 @@ function updateAvatarBadge() {
   const logros = getLogros().length;
 
   let emoji = null;
-  if (logros >= 6)      emoji = '👑'; // todos los logros conseguidos
-  else if (streak >= 7)  emoji = '🕶️'; // semana completa
-  else if (streak >= 3)  emoji = '🧢'; // 3 días seguidos
+  if (logros >= 6)      emoji = '👑';
+  else if (streak >= 7)  emoji = '🕶️';
+  else if (streak >= 3)  emoji = '🧢';
 
   if (emoji) {
     badge.textContent = emoji;
@@ -561,6 +550,26 @@ async function sendMessage() {
 // ─── GROQ API ─────────────────────────────────
 async function getBroReply(userText) {
   try {
+    const ayer = typeof getYesterdayProgress === 'function' ? getYesterdayProgress() : null;
+    const bosses = typeof getBosses === 'function' ? getBosses().filter(b => b.hp > 0) : [];
+    const masteryRaw = typeof getMastery === 'function' ? getMastery() : {};
+    const masteryLabels = {};
+
+    Object.keys(masteryRaw).forEach(k => {
+      masteryLabels[k] = (typeof MASTERY_LABEL !== 'undefined' && MASTERY_LABEL[masteryRaw[k]]) || masteryRaw[k];
+    });
+
+    const studentState = {
+      ayer: ayer ? {
+        completadas: ayer.tareasCompletadas,
+        total: ayer.tareasTotal,
+        bonus: ayer.objetivoCumplido,
+        racha: typeof getStreak === 'function' ? getStreak() : 0
+      } : null,
+      bosses: bosses.map(b => ({ name: b.name, hp: b.hp, hpMax: b.hpMax })),
+      mastery: masteryLabels
+    };
+
     const response = await fetch('/bro-chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -568,7 +577,7 @@ async function getBroReply(userText) {
         message: userText,
         mood:    state.mood,
         history: state.chatHistory.slice(-10),
-        context: buildBroContext(),
+        studentState: studentState,
       }),
     });
 
@@ -655,7 +664,7 @@ function mostrarNotificacionLogro(id) {
 
 // ─── SORPRESAS RANDOM — para que no sea 100% predecible ─
 function maybeSorpresa() {
-  if (Math.random() > 0.2) return; // ~1 de cada 5 bloques
+  if (Math.random() > 0.2) return;
   const sorpresas = [
     '🎁 Ey, esto no estaba en el plan pero te lo has ganado: eres un crack, Mario.',
     '👀 Psst... nadie te lo va a decir, pero vas mejor que ayer. Sigue así.',
@@ -819,13 +828,11 @@ function showBossDefeated(derrotados) {
     addBroMessage(`👾💥 ¡JEFE DERROTADO! Has machacado a "${b.name}", Mario. ¡De locos, literal! 🔥`);
   });
 
-  // Quitamos los derrotados, dejamos el resto de jefes activos intactos
   const idsDerrotados = derrotados.map(b => b.id);
   const bosses = getBosses().filter(b => !idsDerrotados.includes(b.id));
   saveBosses(bosses);
   renderBoss();
 }
-
 
 // ─── MONEDAS — ganadas por bloque, gastables en personalizar ─
 function getCoins() {
@@ -905,7 +912,6 @@ function initColorGuardado() {
   if (key) aplicarColorAcento(key);
 }
 
-
 function initTasks() {
   state.totalTasks = document.querySelectorAll('.tarea-check').length;
 }
@@ -923,7 +929,6 @@ function onTareaChange() {
     objetivoCumplido: state.doneTasks === state.totalTasks,
   });
 
-  // Reconocer el progreso parcial, no solo el "todo o nada"
   if (state.doneTasks > 0 && state.doneTasks < state.totalTasks) {
     const flagKey = `bro_partial_msg_${todayKey()}_${state.doneTasks}`;
     if (!localStorage.getItem(flagKey)) {
@@ -958,7 +963,6 @@ function onTareaChange() {
     if (ayer && ayer.objetivoCumplido) {
       nuevaRacha = streakActual + 1;
     } else if (streakActual > 0 && comodinDisponible()) {
-      // Falló ayer, pero tiene comodín disponible este mes: se salva la racha
       nuevaRacha = streakActual + 1;
       usarComodin();
       comodinUsado = true;
@@ -999,7 +1003,6 @@ function startTimer() {
   updateSpotifyLock();
   playSound('timer_start');
 
-  // Si arrancamos un bloque de ENFOQUE, paramos la música automáticamente
   if (state.timerPhase === 'focus') {
     pauseSpotify();
   }
@@ -1171,7 +1174,6 @@ function closeWinScreen() {
 function exportarProgreso() {
   const backup = {};
 
-  // Recopilamos todas las claves que empiezan por 'bro_' (todo lo nuestro)
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith('bro_')) {
@@ -1225,5 +1227,5 @@ function importarProgreso(input) {
     }
   };
   reader.readAsText(file);
-  input.value = ''; // permite volver a seleccionar el mismo archivo si hace falta
+  input.value = '';
 }

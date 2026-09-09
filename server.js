@@ -27,7 +27,6 @@ const dominiosPermitidos = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Permite peticiones sin origen (como apps locales o curl) o en la lista blanca
     if (!origin || dominiosPermitidos.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -100,12 +99,52 @@ ${TEMARIO_2ESO}
 
 Usa este temario como referencia para proponer temas concretos y realistas cuando Mario diga solo el nombre de la asignatura (ej: "toca Mates" → sugiere un tema real de la lista, no algo genérico). Si Mario te cuenta algo distinto a lo que dio en clase, prioriza siempre lo que él te diga por encima de esta lista.`;
 
-// ─── ENDPOINT CHAT (CON RATE LIMITING) ────────
-app.post('/bro-chat', aiLimiter, async (req, res) => {
-  const { message, mood, history, context } = req.body;
+// ─── CONTROL DE CONTEXTO SEGURO EN EL SERVIDOR ───
+function formatearContextoSeguro(studentState, rawContext) {
+  if (studentState && typeof studentState === 'object') {
+    let ctx = '';
 
-  if (!message) {
-    return res.status(400).json({ error: 'Mensaje vacío' });
+    if (studentState.ayer) {
+      const { completadas = 0, total = 0, bonus = false, racha = 0 } = studentState.ayer;
+      ctx += `\n\n[Contexto del alumno previo: completó ${completadas}/${total} tareas. ${bonus ? 'Tiene bonus de -15 min.' : 'No llegó al objetivo.'} Racha actual: ${racha} días seguidos.]`;
+    }
+
+    if (Array.isArray(studentState.bosses) && studentState.bosses.length > 0) {
+      const listado = studentState.bosses
+        .filter(b => b && b.name)
+        .map(b => `"${String(b.name).slice(0, 30)}" (${Number(b.hp) || 0}/${Number(b.hpMax) || 1} HP)`)
+        .join(', ');
+      if (listado) {
+        ctx += `\n\n[Jefes de examen activos: ${listado}. Cada bloque de estudio de 15 min completado hace 1 de daño a todos. Anima a Mario a hacer bloques y menciona algún jefe por su nombre ocasionalmente.]`;
+      }
+    }
+
+    if (studentState.mastery && typeof studentState.mastery === 'object') {
+      const asignaturas = Object.entries(studentState.mastery)
+        .map(([asig, nivel]) => `${String(asig).slice(0, 20)}: ${String(nivel).slice(0, 20)}`)
+        .join(', ');
+      if (asignaturas) {
+        ctx += `\n\n[Nivel de dominio autodeclarado: ${asignaturas}. Prioriza asignaturas en progreso antes que las dominadas.]`;
+      }
+    }
+
+    return ctx;
+  }
+
+  // Compatibilidad defensiva si aún llega contexto sin estructurar (máx 500 caracteres)
+  if (rawContext && typeof rawContext === 'string') {
+    return '\n\n' + rawContext.slice(0, 500);
+  }
+
+  return '';
+}
+
+// ─── ENDPOINT CHAT (RATE LIMITING + VALIDACIÓN) ─
+app.post('/bro-chat', aiLimiter, async (req, res) => {
+  const { message, mood, history, studentState, context } = req.body;
+
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    return res.status(400).json({ error: 'Mensaje inválido o vacío' });
   }
 
   const moodMap = {
@@ -114,22 +153,29 @@ app.post('/bro-chat', aiLimiter, async (req, res) => {
     rojo:     'KO/Frito (🔴) — muy cansado',
   };
 
+  const safeContext = formatearContextoSeguro(studentState, context);
   const systemWithMood = BRO_SYSTEM_PROMPT +
-    (mood     ? `\n\n[Estado de ánimo de Mario hoy: ${moodMap[mood] || 'desconocido'}]` : '') +
-    (context  ? context : '');
+    (mood ? `\n\n[Estado de ánimo de Mario hoy: ${moodMap[mood] || 'desconocido'}]` : '') +
+    safeContext;
 
-  // Historial limpio — primer mensaje siempre user
-  let chatHistory = (history || []).map(msg => ({
-    role: msg.role === 'assistant' ? 'assistant' : 'user',
-    content: msg.content,
-  }));
-  while (chatHistory.length > 0 && chatHistory[0].role === 'assistant') {
-    chatHistory.shift();
+  // Sanitización y truncado del historial para prevenir desbordamientos e inyecciones
+  const cleanHistory = Array.isArray(history)
+    ? history
+        .filter(msg => msg && (msg.role === 'user' || msg.role === 'assistant') && typeof msg.content === 'string')
+        .slice(-10)
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content.trim().slice(0, 1000)
+        }))
+    : [];
+
+  while (cleanHistory.length > 0 && cleanHistory[0].role === 'assistant') {
+    cleanHistory.shift();
   }
 
   const messages = [
-    ...chatHistory,
-    { role: 'user', content: message }
+    ...cleanHistory,
+    { role: 'user', content: message.trim().slice(0, 1000) }
   ];
 
   try {
@@ -163,7 +209,7 @@ app.post('/bro-chat', aiLimiter, async (req, res) => {
     }
 
     const data = await response.json();
-    let text = data.choices[0].message.content;
+    let text = data.choices?.[0]?.message?.content;
 
     if (!text || !text.trim()) {
       console.error('Respuesta vacía de Groq. Payload completo:', JSON.stringify(data));
@@ -222,6 +268,6 @@ async function verificarGroqKey() {
 // ─── START ────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\n🛴 Bro Dashboard server corriendo en http://localhost:${PORT}`);
-  console.log(`   Groq listo con seguridad activa (Helmet + CORS + RateLimit)\n`);
+  console.log(`   Groq listo con seguridad activa (Helmet + CORS + RateLimit + PromptShield)\n`);
   verificarGroqKey();
 });
