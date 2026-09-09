@@ -516,7 +516,7 @@ function addBroMessage(text) {
     msg.className = 'msg msg-bro';
     msg.innerHTML = `
       <div class="msg-avatar"><img src="bro-avatar.png" alt="Bro" style="width:100%;height:100%;object-fit:cover;object-position:top center;border-radius:50%;" /></div>
-      <div class="msg-bubble">${text}</div>`;
+      <div class="msg-bubble">${formatSafeMessage(text)}</div>`;
     msgs.appendChild(msg);
     msgs.scrollTop = msgs.scrollHeight;
     state.chatHistory.push({ role: 'assistant', content: text });
@@ -595,6 +595,10 @@ async function getBroReply(userText) {
     };
     return fallback[mood];
   }
+}
+
+function formatSafeMessage(text) {
+  return escapeHtml(text).replace(/\n/g, '<br>');
 }
 
 function escapeHtml(str) {
@@ -1229,3 +1233,4 @@ function importarProgreso(input) {
   reader.readAsText(file);
   input.value = '';
 }
+
