@@ -3,21 +3,53 @@
 //   Backend Express + Groq (Llama 4)
 // =============================================
 
-const express = require('express');
-const cors    = require('cors');
-const path    = require('path');
+const express   = require('express');
+const cors      = require('cors');
+const helmet    = require('helmet');
+const rateLimit = require('express-rate-limit');
+const path      = require('path');
 require('dotenv').config();
 
 const app  = express();
 const PORT = process.env.PORT || 3002;
 
-// ─── MIDDLEWARE ───────────────────────────────
+// ─── SEGURIDAD: HELMET ────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: false // Mantiene compatibilidad con scripts e imágenes locales
+}));
+
+// ─── SEGURIDAD: CORS RESTRINGIDO ─────────────
+const dominiosPermitidos = [
+  'https://bro-dashboard.onrender.com',
+  'http://localhost:3000',
+  'http://localhost:3002'
+];
+
 app.use(cors({
-  origin: function(origin, callback) { callback(null, true); },
+  origin: function (origin, callback) {
+    // Permite peticiones sin origen (como apps locales o curl) o en la lista blanca
+    if (!origin || dominiosPermitidos.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Bloqueado por política CORS'));
+    }
+  },
   credentials: true
 }));
+
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ─── SEGURIDAD: RATE LIMITING IA ──────────────
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // Ventana de 15 minutos
+  max: 30, // Máximo 30 mensajes por IP cada 15 minutos
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    reply: '⚠️ Has enviado muchos mensajes seguidos. Tómate un respiro de unos minutos antes de seguir con Bro.'
+  }
+});
 
 // ─── TEMARIO ORIENTATIVO 2º ESO ───────────────
 const TEMARIO_2ESO = `
@@ -68,8 +100,8 @@ ${TEMARIO_2ESO}
 
 Usa este temario como referencia para proponer temas concretos y realistas cuando Mario diga solo el nombre de la asignatura (ej: "toca Mates" → sugiere un tema real de la lista, no algo genérico). Si Mario te cuenta algo distinto a lo que dio en clase, prioriza siempre lo que él te diga por encima de esta lista.`;
 
-// ─── ENDPOINT CHAT ────────────────────────────
-app.post('/bro-chat', async (req, res) => {
+// ─── ENDPOINT CHAT (CON RATE LIMITING) ────────
+app.post('/bro-chat', aiLimiter, async (req, res) => {
   const { message, mood, history, context } = req.body;
 
   if (!message) {
@@ -133,9 +165,6 @@ app.post('/bro-chat', async (req, res) => {
     const data = await response.json();
     let text = data.choices[0].message.content;
 
-    // Salvaguarda: si el modelo se queda sin tokens para la respuesta final
-    // (le pasa a veces con peticiones largas, como pedir varios ejercicios),
-    // evitamos mandar una burbuja vacía al chat.
     if (!text || !text.trim()) {
       console.error('Respuesta vacía de Groq. Payload completo:', JSON.stringify(data));
       text = 'Ey Mario, se me ha ido la pinza un momento montando la respuesta. Dale otra vez al mensaje, anda 🤙';
@@ -151,9 +180,9 @@ app.post('/bro-chat', async (req, res) => {
   }
 });
 
-// ─── HEALTH CHECK ─────────────────────────────
+// ─── HEALTH CHECK (NEUTRALIZADO) ──────────────
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', model: 'openai/gpt-oss-120b' });
+  res.json({ status: 'ok' });
 });
 
 // ─── COMPROBACIÓN DE LA KEY DE GROQ AL ARRANCAR ─
@@ -193,6 +222,6 @@ async function verificarGroqKey() {
 // ─── START ────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\n🛴 Bro Dashboard server corriendo en http://localhost:${PORT}`);
-  console.log(`   Groq + GPT-OSS 120B listo\n`);
+  console.log(`   Groq listo con seguridad activa (Helmet + CORS + RateLimit)\n`);
   verificarGroqKey();
 });

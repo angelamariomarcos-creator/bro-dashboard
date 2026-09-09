@@ -1,20 +1,21 @@
-# Imagen base de Node.js
-FROM node:18-slim
-
-# Directorio de trabajo en el contenedor
+FROM node:22-bullseye-slim AS runner
 WORKDIR /app
 
-# Copiamos los archivos de dependencias de Node
+ENV NODE_ENV=production
+
+# Copiamos solo los manifiestos primero para aprovechar la caché de capas
 COPY package*.json ./
 
-# Instalamos las dependencias
-RUN npm install
+# Instalamos únicamente dependencias de producción de forma estricta y limpia
+RUN npm ci --omit=dev
 
-# Copiamos el resto del código del proyecto
-COPY . .
+# Copiamos solo los archivos indispensables (el .dockerignore ya filtra el resto)
+COPY public ./public
+COPY server.js ./
 
-# Exponemos el puerto de tu servidor Bro Dashboard
+# Seguridad: ejecutamos con el usuario 'node' sin privilegios de root
+USER node
+
 EXPOSE 3002
 
-# Comando para arrancar el servidor
-CMD ["node", "server.js"]docker build -t mi-app-avatar .
+CMD ["node", "server.js"]
