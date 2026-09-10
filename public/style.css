@@ -537,6 +537,43 @@ body {
 }
 .horario-aviso strong { color: var(--night); }
 
+/* HORARIO — textarea editable con autoguardado */
+.horario-textarea {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  background: rgba(255,255,255,0.35);
+  border: 1px dashed rgba(26,26,46,0.3);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--night);
+  outline: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.horario-textarea::placeholder { color: rgba(26,26,46,0.4); }
+
+.horario-textarea:focus {
+  border-color: rgba(26,26,46,0.5);
+  background: rgba(255,255,255,0.55);
+}
+
+.horario-guardado {
+  font-size: 10px;
+  font-weight: 800;
+  color: #1a7a3f;
+  text-align: right;
+  margin-top: 4px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.horario-guardado.visible { opacity: 1; }
+
 /* STATS MINI */
 .stats-mini {
   display: flex;

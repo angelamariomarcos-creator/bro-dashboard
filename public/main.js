@@ -2,6 +2,7 @@
    BRO DASHBOARD — MAIN.JS v2
    Mes 2: persistencia, bonus, memoria de Bro
    Mes 3: control real de Spotify (pausa automática)
+   Mes 4: horario del insti (texto libre, autoguardado)
    ============================================= */
 
 'use strict';
@@ -164,6 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateAvatarBadge();
   renderCoins();
   initColorGuardado();
+  initHorario();
   loadFromStorage();
 });
 
@@ -338,6 +340,39 @@ function updateAvatarBadge() {
   }
 }
 
+// ─── HORARIO DEL INSTI — texto libre, autoguardado ─
+let horarioSaveTimeout = null;
+
+function getHorario() {
+  return localStorage.getItem('bro_horario') || '';
+}
+
+function saveHorario(texto) {
+  localStorage.setItem('bro_horario', texto);
+  mostrarHorarioGuardado();
+}
+
+function mostrarHorarioGuardado() {
+  const el = document.getElementById('horarioGuardado');
+  if (!el) return;
+  el.classList.add('visible');
+  clearTimeout(el._hideTimeout);
+  el._hideTimeout = setTimeout(() => el.classList.remove('visible'), 1500);
+}
+
+function onHorarioInput() {
+  const textarea = document.getElementById('horarioTexto');
+  if (!textarea) return;
+  clearTimeout(horarioSaveTimeout);
+  horarioSaveTimeout = setTimeout(() => saveHorario(textarea.value), 500);
+}
+
+function initHorario() {
+  const textarea = document.getElementById('horarioTexto');
+  if (!textarea) return;
+  textarea.value = getHorario();
+}
+
 function buildBroContext() {
   let ctx = '';
 
@@ -363,6 +398,12 @@ function buildBroContext() {
   if (asignaturasConDatos.length > 0) {
     const resumen = asignaturasConDatos.map(s => `${s}: ${MASTERY_LABEL[mastery[s]]}`).join(', ');
     ctx += `\n\n[Nivel de dominio que Mario dice tener por asignatura: ${resumen}. Si propones un tema, prioriza asignaturas en "Sin empezar" o "Mejorando" antes que las que ya domina. Si una asignatura está en "¡Lo domino!", no insistas en ella salvo que Mario la mencione él mismo — mejor felicítale por eso brevemente si sale el tema.]`;
+  }
+
+  const horario = getHorario();
+  if (horario.trim()) {
+    const hoyNombre = new Date().toLocaleDateString('es-ES', { weekday: 'long' });
+    ctx += `\n\n[Horario de clases de Mario, escrito por él mismo: "${horario.trim()}". Hoy es ${hoyNombre}. Puedes tenerlo en cuenta si viene al caso (por ejemplo si pregunta qué le toca hoy), pero no hace falta repetirlo entero ni sacarlo tú si no pinta nada.]`;
   }
 
   return ctx;
@@ -1247,9 +1288,3 @@ function importarProgreso(input) {
   reader.readAsText(file);
   input.value = '';
 }
-
-
-
-
-
-
