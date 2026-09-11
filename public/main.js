@@ -3,6 +3,7 @@
    Mes 2: persistencia, bonus, memoria de Bro
    Mes 3: control real de Spotify (pausa automática)
    Mes 4: horario del insti (texto libre, autoguardado)
+   Mes 4 (fix): safeGetStorage — faltaba y rompía Groq en silencio
    ============================================= */
 
 'use strict';
@@ -25,6 +26,23 @@ const state = {
 const FOCUS_TIME = 15 * 60;
 const BREAK_TIME =  5 * 60;
 const ARC_TOTAL  = 534;
+
+// ─── HELPER DE LOCALSTORAGE — leer JSON de forma segura ─
+// FALTABA esta función: se usaba en varios sitios (getProgress, getMastery,
+// getLogros, getBosses...) pero nunca estaba definida. Eso rompía esas
+// llamadas con un ReferenceError silencioso, que el try/catch de getBroReply()
+// atrapaba y devolvía siempre el mensaje de emergencia — por eso Bro parecía
+// "responder siempre lo mismo": ni siquiera llegaba a llamar a Groq.
+function safeGetStorage(key, defaultValue) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null || raw === undefined) return defaultValue;
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error(`Error leyendo localStorage["${key}"]:`, e);
+    return defaultValue;
+  }
+}
 
 // ─── MÚSICA — radio integrada (SomaFM) + modo YouTube externo ─
 // El <audio> es 100% controlable por JS, sin bugs de iframes ni APIs externas.
@@ -373,6 +391,73 @@ function initHorario() {
   textarea.value = getHorario();
 }
 
+// ─── RECORDATORIO DE MOCHILA — con el horario de mañana ─
+function normalizarTexto(str) {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function getMananaInfo() {
+  const nombres = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const hoyIndex = new Date().getDay(); // 0 = domingo
+  const mananaIndex = (hoyIndex + 1) % 7;
+  return {
+    nombre: nombres[mananaIndex],
+    esFinde: mananaIndex === 0 || mananaIndex === 6,
+  };
+}
+
+function limpiarLineaAsignatura(linea) {
+  // Quita el rango horario del principio, ej: "8:10-9:05 Mates" -> "Mates"
+  return linea.replace(/^\d{1,2}[:.]\d{2}\s*-\s*\d{1,2}[:.]\d{2}\s*/, '').trim();
+}
+
+function getClasesDeManana() {
+  const horario = getHorario();
+  if (!horario.trim()) return null;
+
+  const DIAS_SEMANA = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+  const diaBuscado = normalizarTexto(getMananaInfo().nombre);
+  const lineas = horario.split('\n');
+
+  let capturando = false;
+  const asignaturas = [];
+
+  for (const lineaRaw of lineas) {
+    const linea = lineaRaw.trim();
+    if (!linea) continue;
+
+    const norm = normalizarTexto(linea).replace(/[:\-–]+$/, '').trim();
+    const esCabeceraDeDia = DIAS_SEMANA.includes(norm);
+
+    if (esCabeceraDeDia) {
+      if (capturando) break; // ya recogimos el día que buscábamos, empieza el siguiente
+      capturando = (norm === diaBuscado);
+      continue;
+    }
+
+    if (capturando) {
+      const asignatura = limpiarLineaAsignatura(linea);
+      if (asignatura) asignaturas.push(asignatura);
+    }
+  }
+
+  if (asignaturas.length === 0) return null;
+  return { dia: getMananaInfo().nombre, asignaturas };
+}
+
+function mostrarRecordatorioMochila() {
+  const manana = getMananaInfo();
+  if (manana.esFinde) return; // sin insti mañana, no hace falta el aviso
+
+  let texto = '🎒 Antes de nada, Mario: prepárate la mochila para mañana.';
+  const info = getClasesDeManana();
+  if (info) {
+    const nombreCap = info.dia.charAt(0).toUpperCase() + info.dia.slice(1);
+    texto += ` Este es tu horario del ${nombreCap}: ${info.asignaturas.join(', ')}.`;
+  }
+  addBroMessage(texto);
+}
+
 function buildBroContext() {
   let ctx = '';
 
@@ -439,11 +524,15 @@ function loadFromStorage() {
     enableChat();
 
     setTimeout(() => {
-      if (state.bonusToday) {
-        addBroMessage('¡Ey Mario! Ayer cumpliste como un campeón. 🏆 Hoy estudias 15 min menos, bro. ¡Tienes el bonus activado!');
-      } else {
-        addBroMessage(greetingReturn(saved.mood));
-      }
+      mostrarRecordatorioMochila();
+
+      setTimeout(() => {
+        if (state.bonusToday) {
+          addBroMessage('¡Ey Mario! Ayer cumpliste como un campeón. 🏆 Hoy estudias 15 min menos, bro. ¡Tienes el bonus activado!');
+        } else {
+          addBroMessage(greetingReturn(saved.mood));
+        }
+      }, 1200);
     }, 400);
   }
 }
@@ -470,12 +559,16 @@ function selectMood(mood, btn) {
     localStorage.setItem('bro_day_' + todayKey(), JSON.stringify({ mood, date: todayKey() }));
 
     setTimeout(() => {
-      if (state.bonusToday) {
-        addBroMessage('¡Ey Mario! Ayer cumpliste como un campeón 🏆 Hoy tienes bonus de -15 min. ¿Arrancamos?');
-      } else {
-        addBroMessage(greetingFirst(mood));
-      }
-      mostrarOnboardingSiPrimeraVez();
+      mostrarRecordatorioMochila();
+
+      setTimeout(() => {
+        if (state.bonusToday) {
+          addBroMessage('¡Ey Mario! Ayer cumpliste como un campeón 🏆 Hoy tienes bonus de -15 min. ¿Arrancamos?');
+        } else {
+          addBroMessage(greetingFirst(mood));
+        }
+        mostrarOnboardingSiPrimeraVez();
+      }, 1200);
     }, 300);
   }, 400);
 }

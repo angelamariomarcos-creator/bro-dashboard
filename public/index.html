@@ -187,14 +187,20 @@
           <p class="progreso-texto" id="progresoTexto">0 / 3 tareas</p>
         </div>
 
+        <!-- Post-it Rosa: Horario del insti -->
         <div class="postit postit-pink">
           <div class="postit-pin"></div>
           <div class="postit-header">
             <span class="postit-icon">🎒</span>
-            <span class="postit-title">Mañana en el insti</span>
+            <span class="postit-title">Mi horario</span>
           </div>
-          <p class="horario-aviso">¡Ya estamos en septiembre! 📚<br>Añade aquí tu horario escolar.</p>
-          <button type="button" class="export-btn" style="margin-top:10px;width:100%;font-size:12px;" onclick="alert('Función para añadir horario disponible muy pronto');">➕ Añadir horario</button>
+          <textarea
+            class="horario-textarea"
+            id="horarioTexto"
+            placeholder="Escribe tu horario, ej:&#10;Lunes: Mates, Lengua, Ed.Física&#10;Martes: Historia, Inglés..."
+            oninput="onHorarioInput()"
+          ></textarea>
+          <p class="horario-guardado" id="horarioGuardado">Guardado ✓</p>
         </div>
 
         <button class="export-btn" onclick="exportarProgreso()">
