@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -201,6 +201,38 @@
             oninput="onHorarioInput()"
           ></textarea>
           <p class="horario-guardado" id="horarioGuardado">Guardado ✓</p>
+        </div>
+
+        <!-- Post-it Verde: Diario de clase -->
+        <div class="postit postit-lime">
+          <div class="postit-pin"></div>
+          <div class="postit-header">
+            <span class="postit-icon">📓</span>
+            <span class="postit-title">Diario de clase</span>
+          </div>
+          <select class="diario-select" id="diarioAsignatura"></select>
+          <textarea
+            class="horario-textarea"
+            id="diarioTexto"
+            placeholder="¿Qué habéis dado hoy en esta asignatura?"
+            style="min-height:70px;"
+          ></textarea>
+          <input type="file" id="diarioFoto" accept="image/*" capture="environment" style="display:none" onchange="onDiarioFotoSeleccionada(this)" />
+          <div id="diarioFotoPreview" style="display:none; margin-top:8px;">
+            <img id="diarioFotoPreviewImg" style="max-width:100%; border-radius:8px; display:block; margin-bottom:6px;" />
+            <button type="button" class="diario-delete-btn" style="width:auto; height:auto; padding:4px 10px; border-radius:8px;" onclick="quitarDiarioFoto()">✕ Quitar foto</button>
+          </div>
+          <div style="display:flex; gap:6px; margin-top:6px;">
+            <button type="button" class="export-btn" style="flex:1; margin-top:0;" onclick="document.getElementById('diarioFoto').click()">📷 Adjuntar foto</button>
+            <button type="button" class="export-btn" style="flex:1; margin-top:0;" onclick="addDiarioEntry()">➕ Añadir apunte</button>
+          </div>
+          <div class="diario-lista-hoy" id="diarioListaHoy"></div>
+          <div class="help-accordion" style="margin-top:10px;">
+            <details>
+              <summary>📚 Ver historial completo</summary>
+              <div id="diarioHistorial"></div>
+            </details>
+          </div>
         </div>
 
         <button class="export-btn" onclick="exportarProgreso()">

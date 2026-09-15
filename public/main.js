@@ -1,4 +1,4 @@
-﻿/* =============================================
+/* =============================================
    BRO DASHBOARD — MAIN.JS v2
    Mes 2: persistencia, bonus, memoria de Bro
    Mes 3: control real de Spotify (pausa automática)
@@ -184,6 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderCoins();
   initColorGuardado();
   initHorario();
+  initDiario();
   loadFromStorage();
 });
 
@@ -458,6 +459,183 @@ function mostrarRecordatorioMochila() {
   addBroMessage(texto);
 }
 
+// ─── DIARIO DE CLASE — qué se ha dado hoy en cada asignatura ─
+const ASIGNATURAS_DIARIO = [
+  'Física y Química',
+  'Matemáticas',
+  'Geografía e Historia',
+  'Inglés',
+  'Lengua Castellana',
+  'Educación Física',
+  'Plástica',
+  'TIC',
+  'Valores',
+  'Optativa',
+];
+
+let diarioFotoBase64 = null;
+
+function onDiarioFotoSeleccionada(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      // Redimensionamos para no llenar el almacenamiento del navegador con fotos a tamaño completo
+      const MAX_ANCHO = 800;
+      const escala = Math.min(1, MAX_ANCHO / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * escala;
+      canvas.height = img.height * escala;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      diarioFotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+      const preview = document.getElementById('diarioFotoPreview');
+      const imgPreview = document.getElementById('diarioFotoPreviewImg');
+      if (preview && imgPreview) {
+        imgPreview.src = diarioFotoBase64;
+        preview.style.display = 'block';
+      }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+function quitarDiarioFoto() {
+  diarioFotoBase64 = null;
+  const preview = document.getElementById('diarioFotoPreview');
+  if (preview) preview.style.display = 'none';
+}
+
+function verFotoGrande(src) {
+  window.open(src, '_blank');
+}
+
+function getDiario() {
+  return safeGetStorage('bro_diario', {});
+}
+
+function saveDiario(diario) {
+  localStorage.setItem('bro_diario', JSON.stringify(diario));
+}
+
+function addDiarioEntry() {
+  const select = document.getElementById('diarioAsignatura');
+  const textarea = document.getElementById('diarioTexto');
+  if (!select || !textarea) return;
+
+  const asignatura = select.value;
+  const texto = textarea.value.trim();
+  const foto = diarioFotoBase64;
+  if (!texto && !foto) return; // nada que guardar
+
+  const diario = getDiario();
+  const hoy = todayKey();
+  if (!diario[hoy]) diario[hoy] = {};
+  if (!diario[hoy][asignatura]) diario[hoy][asignatura] = [];
+
+  const hora = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const entrada = { hora, texto };
+  if (foto) entrada.foto = foto;
+  diario[hoy][asignatura].push(entrada);
+
+  saveDiario(diario);
+  textarea.value = '';
+  quitarDiarioFoto();
+  renderDiarioHoy();
+}
+
+function eliminarDiarioEntry(asignatura, indice) {
+  const diario = getDiario();
+  const hoy = todayKey();
+  if (!diario[hoy] || !diario[hoy][asignatura]) return;
+
+  diario[hoy][asignatura].splice(indice, 1);
+  if (diario[hoy][asignatura].length === 0) delete diario[hoy][asignatura];
+  if (Object.keys(diario[hoy]).length === 0) delete diario[hoy];
+
+  saveDiario(diario);
+  renderDiarioHoy();
+}
+
+function renderDiarioHoy() {
+  const cont = document.getElementById('diarioListaHoy');
+  if (!cont) return;
+
+  const diario = getDiario();
+  const hoy = todayKey();
+  const entradasHoy = diario[hoy] || {};
+  const asignaturasConEntradas = Object.keys(entradasHoy);
+
+  if (asignaturasConEntradas.length === 0) {
+    cont.innerHTML = `<p class="diario-vacio">Nada apuntado hoy todavía.</p>`;
+    return;
+  }
+
+  cont.innerHTML = asignaturasConEntradas.map(asig => {
+    return entradasHoy[asig].map((e, i) => {
+      const fotoHtml = e.foto ? `<br><img src="${e.foto}" class="diario-foto-mini" onclick="verFotoGrande('${e.foto.replace(/'/g, "\\'")}')" />` : '';
+      const textoHtml = e.texto ? escapeHtml(e.texto) : (e.foto ? '(foto)' : '');
+      return `
+      <div class="diario-entrada">
+        <span class="diario-entrada-texto"><strong>${escapeHtml(asig)}</strong> (${e.hora}): ${textoHtml}${fotoHtml}</span>
+        <button type="button" class="diario-delete-btn" onclick="eliminarDiarioEntry('${asig.replace(/'/g, "\\'")}', ${i})" title="Borrar">✕</button>
+      </div>`;
+    }).join('');
+  }).join('');
+}
+
+function renderDiarioHistorial() {
+  const cont = document.getElementById('diarioHistorial');
+  if (!cont) return;
+
+  const diario = getDiario();
+  const fechas = Object.keys(diario).sort().reverse();
+
+  if (fechas.length === 0) {
+    cont.innerHTML = `<p class="diario-vacio">Todavía no hay historial.</p>`;
+    return;
+  }
+
+  cont.innerHTML = fechas.map(fecha => {
+    const asignaturas = diario[fecha];
+    const lineas = Object.keys(asignaturas).map(asig => {
+      const textos = asignaturas[asig].map(e => {
+        const fotoHtml = e.foto ? ` <img src="${e.foto}" class="diario-foto-mini" onclick="verFotoGrande('${e.foto.replace(/'/g, "\\'")}')" />` : '';
+        const textoStr = e.texto ? escapeHtml(e.texto) : (e.foto ? '(foto)' : '');
+        return `${e.hora} — ${textoStr}${fotoHtml}`;
+      }).join('<br>');
+      return `<div class="diario-historial-asig"><strong>${escapeHtml(asig)}</strong><br>${textos}</div>`;
+    }).join('');
+    return `<div class="diario-historial-dia"><div class="diario-historial-fecha">${fecha}</div>${lineas}</div>`;
+  }).join('');
+}
+
+function initDiario() {
+  const select = document.getElementById('diarioAsignatura');
+  if (select && select.options.length === 0) {
+    ASIGNATURAS_DIARIO.forEach(asig => {
+      const opt = document.createElement('option');
+      opt.value = asig;
+      opt.textContent = asig;
+      select.appendChild(opt);
+    });
+  }
+  renderDiarioHoy();
+
+  const detalles = document.querySelector('#diarioHistorial')?.closest('details');
+  if (detalles) {
+    detalles.addEventListener('toggle', () => {
+      if (detalles.open) renderDiarioHistorial();
+    });
+  }
+}
+
 function buildBroContext() {
   let ctx = '';
 
@@ -489,6 +667,14 @@ function buildBroContext() {
   if (horario.trim()) {
     const hoyNombre = new Date().toLocaleDateString('es-ES', { weekday: 'long' });
     ctx += `\n\n[Horario de clases de Mario, escrito por él mismo: "${horario.trim()}". Hoy es ${hoyNombre}. Puedes tenerlo en cuenta si viene al caso (por ejemplo si pregunta qué le toca hoy), pero no hace falta repetirlo entero ni sacarlo tú si no pinta nada.]`;
+  }
+
+  const diarioHoy = getDiario()[todayKey()];
+  if (diarioHoy && Object.keys(diarioHoy).length > 0) {
+    const resumen = Object.keys(diarioHoy)
+      .map(asig => `${asig}: ${diarioHoy[asig].map(e => e.texto).join('; ')}`)
+      .join(' | ');
+    ctx += `\n\n[Lo que Mario ha apuntado que han dado hoy en clase: ${resumen}. Si viene a cuento, puedes conectar los ejercicios que le propongas con esto — pero no hace falta sacarlo tú si no pinta nada.]`;
   }
 
   return ctx;
