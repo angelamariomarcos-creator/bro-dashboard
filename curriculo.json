@@ -1,0 +1,99 @@
+{
+  "matematicas": {
+    "nombre": "Matemáticas",
+    "unidadActual": "U1: Números enteros y fracciones",
+    "objetivos": [
+      "Operar con paréntesis y signos negativos",
+      "Calcular MCD, MCM y simplificar fracciones",
+      "Resolver problemas reales con fracciones"
+    ]
+  },
+  "lengua": {
+    "nombre": "Lengua Castellana",
+    "unidadActual": "U1: Gramática y Clases de palabras",
+    "objetivos": [
+      "Categorías gramaticales (sustantivo, adjetivo, verbo, adverbio)",
+      "Reconocimiento del sujeto y predicado en oraciones simples"
+    ]
+  },
+  "historia": {
+    "nombre": "Geografía e Historia",
+    "unidadActual": "U1: La Edad Media en Europa",
+    "objetivos": [
+      "La caída del Imperio Romano y los reinos germánicos",
+      "El feudalismo: sociedad estamental y economía señorial"
+    ]
+  },
+  "ingles": {
+    "nombre": "Inglés",
+    "unidadActual": "U1: Past Tenses & Daily Routines",
+    "objetivos": [
+      "Uso de Past Simple y Past Continuous con when/while",
+      "Redacción de textos narrativos breves sobre experiencias pasadas"
+    ]
+  },
+  "fisica_quimica": {
+    "nombre": "Física y Química",
+    "unidadActual": "U1: La materia y sus propiedades",
+    "objetivos": [
+      "Diferenciar propiedades generales y específicas",
+      "Cálculo e interpretación de la densidad (d = m / V)"
+    ]
+  },
+  "biologia": {
+    "nombre": "Biología y Geología",
+    "unidadActual": "U1: La célula y su organización",
+    "objetivos": [
+      "Comparar estructura de células procariotas y eucariotas",
+      "Identificar funciones de los orgánulos principales"
+    ]
+  },
+  "tecnologia": {
+    "nombre": "Tecnología",
+    "unidadActual": "U1: Circuitos Eléctricos y Proceso Técnico",
+    "objetivos": [
+      "Identificar componentes de un circuito de corriente continua",
+      "Cálculos básicos con la Ley de Ohm (V = I * R)"
+    ]
+  },
+  "educacion_fisica": {
+    "nombre": "Educación Física",
+    "unidadActual": "U1: Condición Física y Calentamiento",
+    "objetivos": [
+      "Diferenciar y aplicar las fases del calentamiento general y específico",
+      "Identificar las capacidades físicas básicas: fuerza, resistencia, velocidad y flexibilidad"
+    ]
+  },
+  "plastica": {
+    "nombre": "Plástica",
+    "unidadActual": "U1: El Punto, la Línea y el Plano",
+    "objetivos": [
+      "Aplicar el punto y la línea como elementos básicos de representación gráfica",
+      "Diferenciar formas geométricas y orgánicas en composiciones sencillas"
+    ]
+  },
+  "valores": {
+    "nombre": "Valores Éticos",
+    "unidadActual": "U1: La Dignidad de la Persona y los Derechos Humanos",
+    "objetivos": [
+      "Identificar los Derechos Humanos y su origen histórico",
+      "Reflexionar sobre la dignidad humana como fundamento de la convivencia"
+    ]
+  },
+  "tic": {
+    "nombre": "TIC",
+    "unidadActual": "U1: El Ordenador y los Sistemas Operativos",
+    "objetivos": [
+      "Identificar los componentes internos y periféricos de un ordenador",
+      "Gestionar archivos y carpetas dentro de un sistema operativo"
+    ]
+  },
+  "optativa": {
+    "nombre": "Refuerzo de Matemáticas",
+    "unidadActual": "U1: Repaso de Operaciones Básicas y Fracciones",
+    "objetivos": [
+      "Reforzar el cálculo con números enteros, decimales y fracciones",
+      "Afianzar la resolución de problemas aritméticos sencillos paso a paso"
+    ]
+  }
+}

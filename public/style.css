@@ -1,4 +1,4 @@
-/* =============================================
+﻿/* =============================================
    BRO DASHBOARD — STYLE.CSS v2
    Skatepark vibes: cemento, graffiti, comic
    ============================================= */
@@ -30,6 +30,7 @@
   --font-marker: 'Permanent Marker', cursive;
   --font-body:   'Nunito', sans-serif;
   --font-display:'Bebas Neue', sans-serif;
+  --font-sidebar: 'Urbanist', sans-serif;
 }
 
 html, body {
@@ -132,9 +133,11 @@ body {
   transition: opacity 0.5s ease;
 }
 
-.mood-overlay.hidden {
+.mood-overlay.hidden,
+.mood-overlay.oculto {
   opacity: 0;
   pointer-events: none;
+  display: none;
 }
 
 .mood-card {
@@ -896,6 +899,12 @@ body {
   border-bottom-right-radius: 4px;
 }
 
+.msg-bubble .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 6px 0;
+}
+
 /* Typing indicator */
 .msg-typing .msg-bubble {
   display: flex;
@@ -1012,19 +1021,28 @@ body {
   stroke-width: 10;
 }
 
-.timer-progress {
-  fill: none;
-  stroke: var(--orange);
+.timer-progress {  fill: none;
+  stroke: #ff6b35;
   stroke-width: 10;
   stroke-linecap: round;
-  transition: stroke-dashoffset 1s linear, stroke 0.4s ease;
+  stroke-dasharray: 283;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1s linear, stroke 0.3s ease;
 }
 
-.timer-progress.descanso { stroke: var(--green); }
+.timer-progress.timer-warn {
+  stroke: #f5a623;
+}
+
+.timer-progress.timer-danger {
+  stroke: #e94b4b;
+}
 
 .timer-display {
   position: absolute;
-  inset: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1032,372 +1050,269 @@ body {
 
 .timer-digits {
   font-family: var(--font-display);
-  font-size: 42px;
-  color: var(--night);
-  letter-spacing: 0.04em;
-  line-height: 1;
-}
-
-.timer-controls {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.timer-btn {
-  background: rgba(26,26,46,0.08);
-  border: 1px solid rgba(26,26,46,0.1);
-  border-radius: 50%;
-  color: var(--night);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s ease, transform 0.1s ease;
-}
-
-.timer-btn:active { transform: scale(0.9); }
-.timer-btn:hover { background: rgba(26,26,46,0.14); }
-
-.timer-btn-reset, .timer-btn-skip { width: 38px; height: 38px; }
-
-.timer-btn-play {
-  width: 52px;
-  height: 52px;
-  background: var(--orange);
-  color: white;
-  border-color: transparent;
-  box-shadow: 2px 3px 8px rgba(255,107,53,0.35);
-}
-
-.timer-btn-play:hover { background: var(--orange-dim); }
-
-.timer-cycles { display: flex; gap: 8px; align-items: center; }
-
-.cycle-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(26,26,46,0.15);
-  border: 2px solid rgba(26,26,46,0.1);
-  transition: background 0.3s ease, border-color 0.3s ease;
-}
-
-.cycle-dot.active { background: var(--orange); border-color: var(--orange); }
-.cycle-dot.done   { background: rgba(26,26,46,0.4); border-color: rgba(26,26,46,0.3); }
-
-.timer-cycles-label {
-  font-size: 10px;
-  color: rgba(26,26,46,0.45);
+  font-size: 2.6rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #1a1a2e;
 }
 
-/* =============================================
-   ESTADÍSTICAS — gráfico semanal
-   ============================================= */
+.col-right {
+  font-family: var(--font-sidebar);
+}
 
-.stats-card {
+.postit-title,
+.stats-card-title,
+.timer-mode-label,
+.boss-title,
+.spotify-title {
+  font-family: var(--font-marker);
+}
+
+.boss-card,
+.spotify-card {
   background: var(--surface);
   border-radius: var(--radius-lg);
-  padding: 14px 16px;
+  padding: 18px 16px;
   border: 1px solid rgba(0,0,0,0.1);
   box-shadow: 3px 4px 12px rgba(0,0,0,0.1);
-  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.stats-card-header {
+.boss-header,
+.spotify-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
-}
-
-.stats-card-icon { font-size: 16px; }
-
-.stats-card-title {
-  font-family: var(--font-marker);
-  font-size: 15px;
-  color: var(--night);
-}
-
-.stats-chart-wrap {
-  height: 180px;
-  position: relative;
-}
-
-/* =============================================
-   JEFE DE EXAMEN — barra HP
-   ============================================= */
-
-.boss-card {
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  padding: 14px 16px;
-  border: 1px solid rgba(0,0,0,0.1);
-  box-shadow: 3px 4px 12px rgba(0,0,0,0.1);
-  flex-shrink: 0;
-}
-
-.boss-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.boss-icon { font-size: 18px; }
-
-.boss-title {
-  font-family: var(--font-marker);
-  font-size: 15px;
-  color: var(--night);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.boss-hp-wrap {
-  height: 10px;
-  background: rgba(26,26,46,0.12);
-  border-radius: 99px;
-  overflow: hidden;
-  border: 1px solid rgba(26,26,46,0.15);
-}
-
-.boss-hp-bar {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #FF3B3B, #FF6B35);
-  border-radius: 99px;
-  transition: width 0.5s ease;
 }
 
 .bosses-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.boss-empty {
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(26,26,46,0.4);
-  text-align: center;
-  padding: 6px 0;
-}
-
-.boss-row-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 6px;
-  margin-bottom: 4px;
-}
-
-.boss-row-name {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--night);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.boss-row-hp {
-  font-size: 10px;
-  font-weight: 800;
-  color: rgba(26,26,46,0.5);
-  flex-shrink: 0;
-}
-
-.boss-new-btn {
-  width: 100%;
-  background: rgba(26,26,46,0.08);
-  border: 1px dashed rgba(26,26,46,0.25);
-  border-radius: 10px;
-  padding: 8px;
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 800;
-  color: rgba(26,26,46,0.55);
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.boss-new-btn:hover { background: rgba(26,26,46,0.14); }
-
-/* =============================================
-   SPOTIFY
-   ============================================= */
-
-.spotify-card {
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  padding: 14px;
-  border: 1px solid rgba(0,0,0,0.1);
-  box-shadow: 3px 4px 12px rgba(0,0,0,0.1);
-  flex-shrink: 0;
-}
-
-.spotify-header {
-  display: flex;
-  align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
 }
 
-.spotify-title {
-  font-family: var(--font-marker);
-  font-size: 18px;
-  color: var(--night);
+.spotify-header + * {
+  margin-top: 4px;
 }
 
-.spotify-icon-emoji { font-size: 18px; }
-
-/* Pestañas Relax / Tu música */
-.music-tabs {
+.header-curso-selector {
   display: flex;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 4px;
 }
 
-.music-tab {
-  flex: 1;
-  background: rgba(26,26,46,0.06);
-  border: 1px solid rgba(26,26,46,0.1);
-  border-radius: 99px;
-  padding: 6px 10px;
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 800;
-  color: rgba(26,26,46,0.5);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.music-tab:hover { background: rgba(26,26,46,0.12); }
-
-.music-tab.active {
-  background: var(--orange);
-  color: #fff;
-  border-color: transparent;
-}
-
-.music-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 4px 0;
-}
-
-/* Caja de la radio SomaFM */
-.lofi-radio-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 10px;
-  background: var(--surface2);
-  border-radius: 10px;
-  border: 1px solid rgba(26,26,46,0.08);
-}
-
-.lofi-radio-icon { font-size: 24px; }
-
-.lofi-radio-name {
-  font-size: 12px;
+.curso-pill {
+  font-family: var(--font-sidebar);
   font-weight: 700;
-  color: rgba(26,26,46,0.6);
-  text-align: center;
-}
-
-#lofiAudio { width: 100%; }
-
-/* Panel de YouTube externo */
-.youtube-panel-text {
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(26,26,46,0.6);
-  text-align: center;
-  line-height: 1.5;
-  padding: 6px 4px;
-}
-
-.youtube-open-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: #FF0000;
-  color: #fff;
-  text-decoration: none;
-  font-family: var(--font-body);
   font-size: 13px;
-  font-weight: 800;
-  padding: 10px 16px;
-  border-radius: 99px;
-  transition: background 0.15s ease;
+  border: 1px solid rgba(0,0,0,0.15);
+  background: transparent;
+  color: #1a1a2e;
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
-.youtube-open-btn:hover { background: #cc0000; }
-
-.spotify-embed-wrap {
-  position: relative;
-  border-radius: 10px;
-  overflow: hidden;
+.curso-pill.active {
+  background: #ff6b35;
+  color: #fff;
+  border-color: #ff6b35;
 }
 
-.spotify-lock {
-  position: absolute;
+.quiz-overlay {
+  position: fixed;
   inset: 0;
-  background: rgba(214,208,196,0.95);
+  z-index: 1000;
+  background: rgba(180,172,158,0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  border-radius: 10px;
+  transition: opacity 0.3s ease;
+  padding: 20px;
+}
+
+.quiz-overlay.hidden {
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.4s ease;
+  display: none;
 }
 
-.spotify-lock.active { opacity: 1; pointer-events: all; }
+.quiz-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+}
 
-.lock-emoji { font-size: 28px; }
-.lock-msg {
-  font-size: 13px;
+.quiz-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.quiz-progress-text {
+  font-family: var(--font-sidebar);
   font-weight: 700;
+  font-size: 13px;
   color: rgba(26,26,46,0.6);
-  text-align: center;
+}
+
+.quiz-close-btn {
+  border: none;
+  background: rgba(26,26,46,0.1);
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  font-size: 13px;
+  cursor: pointer;
+  color: rgba(26,26,46,0.6);
+}
+
+.quiz-question {
+  font-family: var(--font-sidebar);
+  font-weight: 700;
+  font-size: 18px;
+  color: #1a1a2e;
+  margin-bottom: 20px;
   line-height: 1.4;
 }
-.lock-msg strong { color: var(--night); }
 
-/* =============================================
-   EXPORTAR PROGRESO
-   ============================================= */
-
-.export-btn {
-  width: 100%;
-  background: var(--surface2);
-  border: 1px dashed rgba(26,26,46,0.25);
-  border-radius: var(--radius-md);
-  padding: 10px;
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 800;
-  color: rgba(26,26,46,0.55);
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-  margin-top: 4px;
-  flex-shrink: 0;
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.export-btn:hover {
-  background: rgba(26,26,46,0.1);
-  color: var(--night);
+.quiz-option-btn {
+  text-align: left;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.15);
+  background: transparent;
+  font-family: var(--font-sidebar);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.quiz-option-btn:hover {
+  background: rgba(0,0,0,0.04);
+}
+
+.quiz-option-btn.correcta {
+  background: #e3f7e8;
+  border-color: #34a853;
+  font-weight: 700;
+}
+
+.quiz-option-btn.incorrecta {
+  background: #fbe4e4;
+  border-color: #e94b4b;
+}
+
+.quiz-option-btn:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.quiz-feedback {
+  margin-top: 14px;
+  font-family: var(--font-sidebar);
+  font-size: 14px;
+  font-weight: 700;
+  min-height: 20px;
+}
+
+.quiz-next-btn {
+  margin-top: 16px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: #ff6b35;
+  color: #fff;
+  font-family: var(--font-sidebar);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.quiz-next-btn.hidden {
+  display: none;
+}
+
+.examen-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.examen-label {
+  font-family: var(--font-sidebar);
+  font-weight: 700;
+  font-size: 12px;
+  color: rgba(26,26,46,0.6);
+  margin-top: 14px;
+  margin-bottom: 6px;
+}
+
+.examen-label:first-child {
+  margin-top: 0;
+}
+
+.examen-input {
+  font-family: var(--font-sidebar);
+  font-size: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.15);
+  background: #fff;
+  color: #1a1a2e;
+}
+
+.examen-loading {
+  margin-top: 12px;
+  text-align: center;
+  font-family: var(--font-sidebar);
+  font-size: 13px;
+  color: rgba(26,26,46,0.6);
+}
+
+.examen-loading.hidden {
+  display: none;
+}
+
+.boss-practicar-btn {
+  margin-top: 8px;
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,107,53,0.4);
+  background: rgba(255,107,53,0.08);
+  color: #ff6b35;
+  font-family: var(--font-sidebar);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.timer-visual {
+  position: relative;
+}
+.timer-bro-avatar {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #1a1a2e;
+  border: 3px solid var(--card-bg, #fff);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }

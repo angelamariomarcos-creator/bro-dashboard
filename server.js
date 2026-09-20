@@ -1,49 +1,50 @@
-// =============================================
-//   BRO DASHBOARD — SERVER.JS
-//   Backend Express + Groq (Llama 4)
-// =============================================
+﻿require('dotenv').config();
 
 const express   = require('express');
+const fs        = require('fs');
+const path      = require('path');
 const cors      = require('cors');
 const helmet    = require('helmet');
 const rateLimit = require('express-rate-limit');
-const path      = require('path');
-require('dotenv').config();
 
 const app  = express();
-app.set('trust proxy', 1);
-const PORT = process.env.PORT || 3002;
+app.set('trust proxy', 1); // necesario en Render para que el rate-limit no falle con X-Forwarded-For
+const PORT = process.env.PORT || 3000;
 
-// ─── SEGURIDAD: HELMET ────────────────────────
-app.use(helmet({
-  contentSecurityPolicy: false // Mantiene compatibilidad con scripts e imágenes locales
-}));
-
-// ─── SEGURIDAD: CORS RESTRINGIDO ─────────────
-const dominiosPermitidos = [
-  'https://bro-dashboard.onrender.com',
-  'http://localhost:3000',
-  'http://localhost:3002'
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || dominiosPermitidos.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Bloqueado por política CORS'));
-    }
-  },
-  credentials: true
-}));
-
+// El CSP por defecto de Helmet bloquea los onclick="..." inline, y toda la
+// app de Bro está construida con ese patrón — lo desactivamos para no romper
+// nada, manteniendo el resto de protecciones de Helmet activas.
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static('public'));
 
-// ─── SEGURIDAD: RATE LIMITING IA ──────────────
+// ─── CARGA DEL CURRÍCULO (2º ESO) ──────────────
+let curriculo = {};
+try {
+  const rutaJson = path.join(__dirname, 'curriculo.json');
+  let rawData = fs.readFileSync(rutaJson, 'utf8');
+
+  // Eliminar BOM si estuviera presente para evitar que falle JSON.parse
+  if (rawData.charCodeAt(0) === 0xFEFF) {
+    rawData = rawData.slice(1);
+  }
+
+  curriculo = JSON.parse(rawData);
+  console.log('✅ Base de Datos Curricular (2º ESO) cargada con éxito.');
+} catch (err) {
+  console.error('❌ Error al cargar curriculo.json:', err);
+}
+
+app.get('/api/curriculo', (req, res) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.json(curriculo);
+});
+
+// ─── RATE LIMIT PARA EL CHAT — evita abusos, 30 mensajes/15 min por IP ─
 const aiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // Ventana de 15 minutos
-  max: 30, // Máximo 30 mensajes por IP cada 15 minutos
+  windowMs: 15 * 60 * 1000,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -51,136 +52,96 @@ const aiLimiter = rateLimit({
   }
 });
 
-// ─── TEMARIO ORIENTATIVO 2º ESO ───────────────
-const TEMARIO_2ESO = `
-Temario orientativo de 2º ESO (para sugerir temas concretos si Mario no especifica):
+// ─── PERSONALIDAD Y CONTEXTO DE BRO ────────────
+const TONO_POR_ANIMO = {
+  verde:    'Mario viene hoy con energía a tope (🟢 "A tope"). Puedes ser más enérgico, directo y celebrar más.',
+  amarillo: 'Mario está en "modo avión" hoy (🟡), tranquilo pero constante. Ve paso a paso, sin agobiar.',
+  rojo:     'Mario viene cansado o agobiado hoy (🔴 "KO/Frito"). Sé breve, comprensivo, no le exijas de más de lo justo.',
+};
 
-- Matemáticas: números enteros y racionales, potencias y raíces, proporcionalidad y porcentajes, ecuaciones de primer y segundo grado, sistemas de ecuaciones, Teorema de Pitágoras, áreas y perímetros, funciones (tablas y gráficas), estadística.
-- Lengua: categorías gramaticales, sintaxis básica (sujeto/predicado), acentuación, textos narrativos/descriptivos/expositivos, literatura medieval y Siglo de Oro, comentario de texto.
-- Geografía e Historia: Edad Media (feudalismo, Al-Ándalus, Reconquista), inicios Edad Moderna (Renacimiento, descubrimientos), relieve y clima de Europa, población y ciudades.
-- Inglés: Present/Past Simple y Continuous, comparativos y superlativos, verbos modales (can, must, should), vocabulario de rutinas/viajes/tecnología.
-- Biología y Geología: la célula, clasificación de seres vivos, nutrición/relación/reproducción, ecosistemas, rocas y minerales.
-- Física y Química: estados de la materia, mezclas y sustancias puras, átomos y tabla periódica, fuerzas y movimiento.
-- Tecnología: proceso tecnológico, estructuras y mecanismos, electricidad básica, programación por bloques.
+function buildResumenCurriculo() {
+  return Object.values(curriculo).map(asig => {
+    const objetivos = Array.isArray(asig.objetivos) ? asig.objetivos.join('; ') : '';
+    return `- ${asig.nombre} — ${asig.unidadActual}. Objetivos: ${objetivos}`;
+  }).join('\n');
+}
+
+function buildSystemPrompt(mood, studentState, curso) {
+  const cursoNum = curso || '2';
+  let prompt = `Eres "Bro", el tutor de estudio de Mario, un alumno de 2º de ESO. Tu personalidad es la de un colega mayor con vibra skater: cercano, motivador y nada acartonado, pero riguroso con el contenido real.
+
+REGLAS ESTRICTAS QUE NUNCA ROMPES:
+- Una sola pregunta o ejercicio cada vez. Nunca propongas dos a la vez.
+- Cuando propongas un ejercicio, NUNCA des la solución en el mismo mensaje. Espera a que Mario responda, o a que la pida explícitamente ("no sé", "ayuda", "dime la solución"...).
+- Basa los ejercicios en el currículo real de 2º ESO que tienes abajo — usa la unidad y el objetivo correctos según la asignatura de la que se hable.
+- Formato: texto plano o markdown simple (**negrita**). Para fórmulas matemáticas usa la sintaxis \\( ... \\) para en línea, o \\[ ... \\] para una fórmula destacada aparte.
+
+CURRÍCULO DE 2º ESO (asignatura — unidad actual — objetivos):
+${buildResumenCurriculo()}
 `;
 
-// ─── SYSTEM PROMPT DE BRO ─────────────────────
-const BRO_SYSTEM_PROMPT = `Eres "Bro", el tutor y colega mayor de Mario, un alumno de 2º de ESO de 14 años.
-No eres un profesor formal, no juzgas, no echas sermones.
-Tu objetivo absoluto es motivarle a estudiar en bloques de 15 minutos sin que le dé pereza.
+  if (cursoNum !== '2') {
+    prompt += `\n\nAVISO IMPORTANTE: Mario ha seleccionado ${cursoNum}º de ESO en el dashboard, pero el currículo cargado arriba es SOLO de 2º ESO. NO inventes contenido de ${cursoNum}º ESO. Dile a Mario con naturalidad y sin agobiarle que de momento solo tienes el temario de 2º cargado, y sigue ayudándole con eso si quiere, o pregúntale qué necesita.`;
+  }
 
-⚠️ REGLA #1, LA MÁS IMPORTANTE DE TODAS — UNA PREGUNTA CADA VEZ:
-- SIEMPRE que des un ejercicio o pregunta, das SOLO UNO por mensaje. Nunca dos, nunca tres, nunca una lista de ejercicios de golpe.
-- PROHIBIDO ABSOLUTO: escribir la solución/respuesta correcta en el MISMO mensaje donde planteas la pregunta. Jamás. Ni aunque Mario pida "varios ejercicios" o "unos cuantos" — igualmente le das el PRIMERO SOLO, sin solución, y esperas su respuesta antes de seguir.
-- Si Mario pide explícitamente "dame la solución" o "no sé, dímelo tú", entonces sí puedes dar la solución de ESE ejercicio concreto — pero nunca la des sin que él la pida o sin que él haya respondido primero.
-- Flujo correcto: 1) Preguntas el ejercicio 1 (sin solución). 2) Esperas su respuesta. 3) Le dices si acertó o no, y por qué. 4) Solo entonces pasas al ejercicio 2 (sin solución). Repite.
-- Si notas que estás a punto de escribir la palabra "Solución:" en el mismo mensaje donde acabas de plantear una pregunta nueva, PARA — eso es exactamente lo que no debes hacer.
+  if (TONO_POR_ANIMO[mood]) {
+    prompt += `\nESTADO DE ÁNIMO DE MARIO HOY: ${TONO_POR_ANIMO[mood]}`;
+  }
 
-Personalidad y tono:
-- Extremadamente empático, cercano y leal con Mario.
-- Usa jerga juvenil española de forma natural: "literal", "de locos", "ff", "renta", "vibras", "chill", "hacer un fly", "planchar trucos".
-- Llama a Mario por su nombre de vez en cuando.
-- Nunca uses lenguaje formal ni académico.
-- Mensajes CORTOS: máximo 2-3 frases. Nunca párrafos largos.
-- Termina siempre con una llamada a la acción clara o una pregunta motivadora.
-- Si Mario dice que terminó una tarea, felicítale con energía y pídele que marque el checkbox.
-- Si Mario dice que no puede o tiene pereza, no le regañes. Dale un empujón pequeño.
-- Si Mario habla de la scooter o el parque, dile que se lo ha ganado cuando termine.
-
-REGLA — CONTENIDO REAL (además de la regla #1 de arriba):
-- Si TÚ propones un test y Mario acepta (dice "venga", "ok", "dale"...), tu SIGUIENTE mensaje tiene que contener la PRIMERA pregunta de verdad, con datos concretos (ej: una ecuación real, una pregunta real sobre el feudalismo). NUNCA des por hecho que Mario ya ha terminado algo que no le has planteado todavía.
-- No felicites a Mario por terminar un ejercicio que no le has dado. Solo felicítale cuando ÉL te diga que ha terminado o te dé una respuesta.
-
-Adaptación por estado de ánimo:
-- Si estado = "verde" (A tope): motívale al máximo, habla del bonus de mañana, dale caña.
-- Si estado = "amarillo" (Modo avión): tranquilo pero constante, un bloque cada vez.
-- Si estado = "rojo" (KO/Frito): rebaja la exigencia totalmente. Solo 10 min de lo más fácil.
-
-${TEMARIO_2ESO}
-
-Usa este temario como referencia para proponer temas concretos y realistas cuando Mario diga solo el nombre de la asignatura (ej: "toca Mates" → sugiere un tema real de la lista, no algo genérico). Si Mario te cuenta algo distinto a lo que dio en clase, prioriza siempre lo que él te diga por encima de esta lista.`;
-
-// ─── CONTROL DE CONTEXTO SEGURO EN EL SERVIDOR ───
-function formatearContextoSeguro(studentState, rawContext) {
-  if (studentState && typeof studentState === 'object') {
-    let ctx = '';
-
+  if (studentState) {
     if (studentState.ayer) {
-      const { completadas = 0, total = 0, bonus = false, racha = 0 } = studentState.ayer;
-      ctx += `\n\n[Contexto del alumno previo: completó ${completadas}/${total} tareas. ${bonus ? 'Tiene bonus de -15 min.' : 'No llegó al objetivo.'} Racha actual: ${racha} días seguidos.]`;
+      const a = studentState.ayer;
+      prompt += a.bonus
+        ? `\n\nAyer Mario completó todas sus tareas (${a.completadas}/${a.total}). Racha actual: ${a.racha} días seguidos.`
+        : `\n\nAyer Mario completó ${a.completadas} de ${a.total} tareas. Racha actual: ${a.racha} días seguidos.`;
     }
 
     if (Array.isArray(studentState.bosses) && studentState.bosses.length > 0) {
-      const listado = studentState.bosses
-        .filter(b => b && b.name)
-        .map(b => `"${String(b.name).slice(0, 30)}" (${Number(b.hp) || 0}/${Number(b.hpMax) || 1} HP)`)
-        .join(', ');
-      if (listado) {
-        ctx += `\n\n[Jefes de examen activos: ${listado}. Cada bloque de estudio de 15 min completado hace 1 de daño a todos. Anima a Mario a hacer bloques y menciona algún jefe por su nombre ocasionalmente.]`;
-      }
+      const listado = studentState.bosses.map(b => `"${b.name}" (${b.hp}/${b.hpMax} bloques)`).join(', ');
+      prompt += `\n\nExámenes que Mario está preparando: ${listado}. Cada bloque de estudio de 15 min suma progreso en su preparación. Anímale a hacer bloques y menciona alguno de los exámenes por su nombre de vez en cuando.`;
     }
 
-    if (studentState.mastery && typeof studentState.mastery === 'object') {
-      const asignaturas = Object.entries(studentState.mastery)
-        .map(([asig, nivel]) => `${String(asig).slice(0, 20)}: ${String(nivel).slice(0, 20)}`)
-        .join(', ');
-      if (asignaturas) {
-        ctx += `\n\n[Nivel de dominio autodeclarado: ${asignaturas}. Prioriza asignaturas en progreso antes que las dominadas.]`;
-      }
+    if (studentState.mastery && Object.keys(studentState.mastery).length > 0) {
+      const resumen = Object.entries(studentState.mastery).map(([k, v]) => `${k}: ${v}`).join(', ');
+      prompt += `\n\nNivel de dominio que Mario dice tener por asignatura: ${resumen}. Prioriza asignaturas en "Sin empezar" o "Mejorando" antes que las que ya domina.`;
     }
-
-    return ctx;
   }
 
-  // Compatibilidad defensiva si aún llega contexto sin estructurar (máx 500 caracteres)
-  if (rawContext && typeof rawContext === 'string') {
-    return '\n\n' + rawContext.slice(0, 500);
-  }
-
-  return '';
+  return prompt;
 }
 
-// ─── ENDPOINT CHAT (RATE LIMITING + VALIDACIÓN) ─
-app.post('/bro-chat', aiLimiter, async (req, res) => {
-  const { message, mood, history, studentState, context } = req.body;
-
-  if (!message || typeof message !== 'string' || !message.trim()) {
-    return res.status(400).json({ error: 'Mensaje inválido o vacío' });
-  }
-
-  const moodMap = {
-    verde:    'A tope (🟢) — con mucha energía',
-    amarillo: 'Modo avión (🟡) — ni fu ni fa',
-    rojo:     'KO/Frito (🔴) — muy cansado',
-  };
-
-  const safeContext = formatearContextoSeguro(studentState, context);
-  const systemWithMood = BRO_SYSTEM_PROMPT +
-    (mood ? `\n\n[Estado de ánimo de Mario hoy: ${moodMap[mood] || 'desconocido'}]` : '') +
-    safeContext;
-
-  // Sanitización y truncado del historial para prevenir desbordamientos e inyecciones
-  const cleanHistory = Array.isArray(history)
-    ? history
-        .filter(msg => msg && (msg.role === 'user' || msg.role === 'assistant') && typeof msg.content === 'string')
-        .slice(-10)
-        .map(msg => ({
-          role: msg.role,
-          content: msg.content.trim().slice(0, 1000)
-        }))
-    : [];
-
-  while (cleanHistory.length > 0 && cleanHistory[0].role === 'assistant') {
-    cleanHistory.shift();
-  }
-
-  const messages = [
-    ...cleanHistory,
-    { role: 'user', content: message.trim().slice(0, 1000) }
-  ];
-
+// ─── ENDPOINT DE GENERACIÓN DE TEST DE PRÁCTICA ───────
+app.post('/generar-quiz', aiLimiter, async (req, res) => {
   try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const { asignatura, tema } = req.body || {};
+
+    if (!asignatura || !tema || typeof tema !== 'string') {
+      return res.status(400).json({ error: 'Falta asignatura o tema.' });
+    }
+
+    if (!process.env.GROQ_API_KEY) {
+      return res.status(500).json({ error: 'Falta la key de Groq.' });
+    }
+
+    const infoAsignatura = curriculo[asignatura];
+    const nombreAsignatura = infoAsignatura ? infoAsignatura.nombre : asignatura;
+
+    const promptQuiz = `Eres un generador de tests educativos para 2º de ESO. Genera EXACTAMENTE 10 preguntas tipo test sobre "${tema.trim()}" en la asignatura de ${nombreAsignatura}, con dificultad apropiada para un alumno de 13-14 años.
+
+Responde ÚNICAMENTE con un JSON válido, sin texto adicional antes ni después, con esta estructura exacta:
+{
+  "preguntas": [
+    {
+      "pregunta": "texto de la pregunta",
+      "opciones": ["opción A", "opción B", "opción C", "opción D"],
+      "correcta": 0
+    }
+  ]
+}
+
+"correcta" es el índice (0-3) de la opción correcta dentro del array "opciones". Deben ser exactamente 10 preguntas, cada una con exactamente 4 opciones.`;
+
+    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -188,57 +149,121 @@ app.post('/bro-chat', aiLimiter, async (req, res) => {
       },
       body: JSON.stringify({
         model: 'openai/gpt-oss-120b',
-        messages: [
-          { role: 'system', content: systemWithMood },
-          ...messages
-        ],
-        max_tokens: 900,
-        temperature: 0.85,
-        reasoning_effort: 'low',
+        messages: [{ role: 'user', content: promptQuiz }],
+        temperature: 0.6,
+        max_tokens: 2500,
+        response_format: { type: 'json_object' },
       }),
     });
 
-    if (!response.ok) {
-      const err = await response.text();
-      console.error('Error Groq:', err);
+    const data = await groqResponse.json();
 
-      let reply = 'Ey Mario, me he colgado un momento. Mándame otro mensaje bro 🤙';
-      if (response.status === 401) {
-        reply = '⚠️ Bro tiene un problema de configuración (key inválida). Avisa a un adulto para que lo revise, no eres tú, es cosa nuestra.';
-      }
-      return res.status(500).json({ reply });
+    if (!groqResponse.ok) {
+      console.error('❌ Error de Groq en /generar-quiz:', data);
+      return res.status(500).json({ error: 'Bro no pudo generar el test. Inténtalo de nuevo.' });
     }
 
-    const data = await response.json();
-    let text = data.choices?.[0]?.message?.content;
-
-    if (!text || !text.trim()) {
-      console.error('Respuesta vacía de Groq. Payload completo:', JSON.stringify(data));
-      text = 'Ey Mario, se me ha ido la pinza un momento montando la respuesta. Dale otra vez al mensaje, anda 🤙';
+    let quizData;
+    try {
+      quizData = JSON.parse(data.choices[0].message.content);
+    } catch (e) {
+      console.error('❌ JSON inválido de Groq:', e, data.choices?.[0]?.message?.content);
+      return res.status(500).json({ error: 'El test generado no tenía formato válido. Inténtalo de nuevo.' });
     }
+
+    if (!Array.isArray(quizData.preguntas) || quizData.preguntas.length === 0) {
+      return res.status(500).json({ error: 'El test generado estaba vacío. Inténtalo de nuevo.' });
+    }
+
+    const preguntasValidas = quizData.preguntas.filter(p =>
+      p && typeof p.pregunta === 'string' &&
+      Array.isArray(p.opciones) && p.opciones.length === 4 &&
+      Number.isInteger(p.correcta) && p.correcta >= 0 && p.correcta <= 3
+    );
+
+    if (preguntasValidas.length === 0) {
+      return res.status(500).json({ error: 'El test generado no tenía preguntas válidas. Inténtalo de nuevo.' });
+    }
+
+    res.json({ preguntas: preguntasValidas });
+
+  } catch (err) {
+    console.error('❌ Error en /generar-quiz:', err);
+    res.status(500).json({ error: 'Bro se ha colgado generando el test. Inténtalo de nuevo.' });
+  }
+});
+
+// ─── ENDPOINT DE CHAT — conecta con Groq ───────
+app.post('/bro-chat', aiLimiter, async (req, res) => {
+  try {
+    const { message, mood, history, studentState, curso } = req.body || {};
+
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ reply: 'No me ha llegado ningún mensaje, bro.' });
+    }
+
+    if (curso && curso !== '2') {
+      return res.status(200).json({
+        reply: `🚧 Ey Mario, esto todavía es una demo — de momento Bro solo tiene cargado el temario de 2º de ESO.\n\nEn la versión en producción tendrás tu curso completo (${curso}º ESO) disponible. Mientras tanto, si quieres, prueba a seleccionar "2 ESO" arriba y le damos caña a ese temario 🤙`
+      });
+    }
+
+    if (!process.env.GROQ_API_KEY) {
+      console.error('❌ GROQ_API_KEY no configurada.');
+      return res.status(500).json({ reply: '⚠️ Bro tiene un problema de configuración (falta la key). Avisa a un adulto, no eres tú, es cosa nuestra.' });
+    }
+
+    const systemPrompt = buildSystemPrompt(mood, studentState, curso);
+
+    const mensajesGroq = [
+      { role: 'system', content: systemPrompt },
+      ...(Array.isArray(history) ? history.slice(-10).map(h => ({
+          role: h.role === 'assistant' ? 'assistant' : 'user',
+          content: String(h.content || ''),
+        })) : []),
+      { role: 'user', content: message },
+    ];
+
+    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'openai/gpt-oss-120b',
+        messages: mensajesGroq,
+        temperature: 0.7,
+        max_tokens: 700,
+      }),
+    });
+
+    const data = await groqResponse.json();
+
+    if (!groqResponse.ok) {
+      console.error('❌ Error de Groq:', JSON.stringify(data));
+      return res.status(502).json({
+        reply: '⚠️ Bro tiene un problema de configuración (key inválida o límite alcanzado). Avisa a un adulto para que lo revise, no eres tú, es cosa nuestra.'
+      });
+    }
+
+    const text = data.choices?.[0]?.message?.content
+      || 'Ey Mario, me he colgado un momento. Mándame otro mensaje bro 🤙';
 
     res.json({ reply: text });
 
-  } catch (error) {
-    console.error('Error Groq:', error.message);
-    res.status(500).json({
-      reply: 'Ey Mario, me he colgado un momento. Mándame otro mensaje bro 🤙'
-    });
+  } catch (err) {
+    console.error('❌ Error en /bro-chat:', err);
+    res.status(500).json({ reply: 'Ey Mario, me he colgado un momento. Mándame otro mensaje bro 🤙' });
   }
 });
 
-// ─── HEALTH CHECK (NEUTRALIZADO) ──────────────
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
-
-// ─── COMPROBACIÓN DE LA KEY DE GROQ AL ARRANCAR ─
+// ─── VERIFICACIÓN DE LA KEY AL ARRANCAR ────────
 async function verificarGroqKey() {
   if (!process.env.GROQ_API_KEY) {
-    console.log('\n🚨 GROQ_API_KEY no encontrada en el .env — Bro no podrá chatear.\n');
+    console.log('\n⚠️  GROQ_API_KEY no encontrada en el .env — Bro no podrá chatear.\n');
     return;
   }
-
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -249,26 +274,23 @@ async function verificarGroqKey() {
       body: JSON.stringify({
         model: 'openai/gpt-oss-120b',
         messages: [{ role: 'user', content: 'test' }],
-        max_tokens: 5,
+        max_tokens: 1,
       }),
     });
 
     if (response.ok) {
       console.log('✅ Key de Groq verificada correctamente — Bro puede chatear.\n');
-    } else if (response.status === 401) {
-      console.log('\n🚨 AVISO: la GROQ_API_KEY del .env es INVÁLIDA (401 Unauthorized).');
-      console.log('   Genera una key nueva en https://console.groq.com/keys y actualiza el .env.\n');
     } else {
-      console.log(`\n⚠️  Aviso: Groq respondió con estado ${response.status} al verificar la key.\n`);
+      const errData = await response.json().catch(() => ({}));
+      console.log('⚠️  Key de Groq inválida o con problemas:', JSON.stringify(errData), '\n');
     }
   } catch (err) {
-    console.log('\n⚠️  No se pudo verificar la key de Groq (sin conexión a internet?):', err.message, '\n');
+    console.log('⚠️  No se pudo verificar la key de Groq:', err.message, '\n');
   }
 }
 
-// ─── START ────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\n🛴 Bro Dashboard server corriendo en http://localhost:${PORT}`);
-  console.log(`   Groq listo con seguridad activa (Helmet + CORS + RateLimit + PromptShield)\n`);
+  console.log('   Seguridad activa (Helmet + CORS + RateLimit)\n');
   verificarGroqKey();
 });

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -6,10 +6,12 @@
   <title>Bro Dashboard — Mario</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Nunito:wght@400;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Nunito:wght@400;600;700;800&family=Bebas+Neue&family=Urbanist:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
   <style>
     /* Estilos del panel CÓMO USAR BRO */
     .help-card {
@@ -91,6 +93,57 @@
     </div>
   </div>
 
+  <div class="quiz-overlay hidden" id="nuevoExamenOverlay">
+    <div class="quiz-card">
+      <div class="quiz-header">
+        <span class="quiz-progress-text">Nuevo examen</span>
+        <button class="quiz-close-btn" onclick="cerrarNuevoExamenModal()">✕</button>
+      </div>
+      <div class="examen-form">
+        <label class="examen-label">Asignatura</label>
+        <select class="examen-input" id="examenAsignatura">
+          <option value="matematicas">Matemáticas</option>
+          <option value="lengua">Lengua Castellana</option>
+          <option value="historia">Geografía e Historia</option>
+          <option value="ingles">Inglés</option>
+          <option value="fisica_quimica">Física y Química</option>
+          <option value="biologia">Biología y Geología</option>
+          <option value="tecnologia">Tecnología</option>
+          <option value="educacion_fisica">Educación Física</option>
+          <option value="plastica">Plástica</option>
+          <option value="valores">Valores Éticos</option>
+          <option value="tic">TIC</option>
+          <option value="optativa">Refuerzo de Matemáticas</option>
+        </select>
+
+        <label class="examen-label">Tema (ej: "Fracciones", "El feudalismo")</label>
+        <input class="examen-input" type="text" id="examenTema" placeholder="Escribe el tema del examen" />
+
+        <label class="examen-label">Bloques de estudio de 15 min</label>
+        <input class="examen-input" type="number" id="examenBloques" value="6" min="1" max="20" />
+
+        <label class="examen-label">Fecha del examen (opcional)</label>
+        <input class="examen-input" type="date" id="examenFecha" />
+
+        <button class="quiz-next-btn" id="examenCrearBtn" onclick="crearExamenDesdeModal()">Crear examen y test de práctica</button>
+        <p class="examen-loading hidden" id="examenLoadingText">Generando test de práctica, un momento...</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="quiz-overlay hidden" id="quizOverlay">
+    <div class="quiz-card">
+      <div class="quiz-header">
+        <span class="quiz-progress-text" id="quizProgressText">Pregunta 1/10</span>
+        <button class="quiz-close-btn" onclick="cerrarQuiz()">✕</button>
+      </div>
+      <p class="quiz-question" id="quizQuestionText"></p>
+      <div class="quiz-options" id="quizOptionsContainer"></div>
+      <div class="quiz-feedback" id="quizFeedback"></div>
+      <button class="quiz-next-btn hidden" id="quizNextBtn" onclick="siguientePreguntaQuiz()">Siguiente →</button>
+    </div>
+  </div>
+
   <div class="win-screen" id="winScreen">
     <div class="win-content">
       <div class="win-scooter">🛴</div>
@@ -105,12 +158,33 @@
     <header class="app-header">
       <div class="header-logo">BRO<span class="header-dot">.</span></div>
       <div class="header-date" id="headerDate"></div>
+      <div class="header-curso-selector" id="cursoSelector">
+        <button class="curso-pill" data-curso="1" onclick="seleccionarCurso(1)">1 ESO</button>
+        <button class="curso-pill" data-curso="2" onclick="seleccionarCurso(2)">2 ESO</button>
+        <button class="curso-pill" data-curso="3" onclick="seleccionarCurso(3)">3 ESO</button>
+        <button class="curso-pill" data-curso="4" onclick="seleccionarCurso(4)">4 ESO</button>
+      </div>
       <div class="header-mood-indicator" id="moodIndicator"></div>
     </header>
 
     <main class="grid">
 
       <aside class="col col-left">
+
+        <div class="postit postit-pink">
+          <div class="postit-pin"></div>
+          <div class="postit-header">
+            <span class="postit-icon">🎒</span>
+            <span class="postit-title">Mi horario</span>
+          </div>
+          <textarea
+            class="horario-textarea"
+            id="horarioTexto"
+            placeholder="Escribe tu horario, ej:&#10;Lunes: Mates, Lengua, Ed.Física&#10;Martes: Historia, Inglés..."
+            oninput="onHorarioInput()"
+          ></textarea>
+          <p class="horario-guardado" id="horarioGuardado">Guardado ✓</p>
+        </div>
 
         <div class="postit postit-yellow">
           <div class="postit-pin"></div>
@@ -164,20 +238,62 @@
           <div class="tareas-lista" id="tareasList">
             <label class="tarea-item">
               <input type="checkbox" class="tarea-check" onchange="onTareaChange(); trackSubjectCompletion(this)" />
+              <span class="tarea-nombre" onclick="event.preventDefault(); event.stopPropagation(); pedirEjerciciosDe('Física y Química')" style="cursor:pointer;" title="Toca para pedirle ejercicios a Bro">Física y Química</span>
+              <button type="button" class="mastery-btn" data-subject="Física y Química" onclick="event.preventDefault(); cycleMastery(this)" title="¿Cómo lo llevas? Toca para cambiar">❔</button>
+              <span class="tarea-tiempo">15 min</span>
+            </label>
+            <label class="tarea-item">
+              <input type="checkbox" class="tarea-check" onchange="onTareaChange(); trackSubjectCompletion(this)" />
               <span class="tarea-nombre" onclick="event.preventDefault(); event.stopPropagation(); pedirEjerciciosDe('Matemáticas')" style="cursor:pointer;" title="Toca para pedirle ejercicios a Bro">Matemáticas</span>
               <button type="button" class="mastery-btn" data-subject="Matemáticas" onclick="event.preventDefault(); cycleMastery(this)" title="¿Cómo lo llevas? Toca para cambiar">❔</button>
               <span class="tarea-tiempo">15 min</span>
             </label>
             <label class="tarea-item">
               <input type="checkbox" class="tarea-check" onchange="onTareaChange(); trackSubjectCompletion(this)" />
-              <span class="tarea-nombre" onclick="event.preventDefault(); event.stopPropagation(); pedirEjerciciosDe('Historia')" style="cursor:pointer;" title="Toca para pedirle ejercicios a Bro">Historia</span>
-              <button type="button" class="mastery-btn" data-subject="Historia" onclick="event.preventDefault(); cycleMastery(this)" title="¿Cómo lo llevas? Toca para cambiar">❔</button>
+              <span class="tarea-nombre" onclick="event.preventDefault(); event.stopPropagation(); pedirEjerciciosDe('Geografía e Historia')" style="cursor:pointer;" title="Toca para pedirle ejercicios a Bro">Geografía e Historia</span>
+              <button type="button" class="mastery-btn" data-subject="Geografía e Historia" onclick="event.preventDefault(); cycleMastery(this)" title="¿Cómo lo llevas? Toca para cambiar">❔</button>
               <span class="tarea-tiempo">15 min</span>
             </label>
             <label class="tarea-item">
               <input type="checkbox" class="tarea-check" onchange="onTareaChange(); trackSubjectCompletion(this)" />
-              <span class="tarea-nombre" onclick="event.preventDefault(); event.stopPropagation(); pedirEjerciciosDe('Lengua')" style="cursor:pointer;" title="Toca para pedirle ejercicios a Bro">Lengua</span>
-              <button type="button" class="mastery-btn" data-subject="Lengua" onclick="event.preventDefault(); cycleMastery(this)" title="¿Cómo lo llevas? Toca para cambiar">❔</button>
+              <span class="tarea-nombre" onclick="event.preventDefault(); event.stopPropagation(); pedirEjerciciosDe('Inglés')" style="cursor:pointer;" title="Toca para pedirle ejercicios a Bro">Inglés</span>
+              <button type="button" class="mastery-btn" data-subject="Inglés" onclick="event.preventDefault(); cycleMastery(this)" title="¿Cómo lo llevas? Toca para cambiar">❔</button>
+              <span class="tarea-tiempo">15 min</span>
+            </label>
+            <label class="tarea-item">
+              <input type="checkbox" class="tarea-check" onchange="onTareaChange(); trackSubjectCompletion(this)" />
+              <span class="tarea-nombre" onclick="event.preventDefault(); event.stopPropagation(); pedirEjerciciosDe('Lengua Castellana')" style="cursor:pointer;" title="Toca para pedirle ejercicios a Bro">Lengua Castellana</span>
+              <button type="button" class="mastery-btn" data-subject="Lengua Castellana" onclick="event.preventDefault(); cycleMastery(this)" title="¿Cómo lo llevas? Toca para cambiar">❔</button>
+              <span class="tarea-tiempo">15 min</span>
+            </label>
+            <label class="tarea-item">
+              <input type="checkbox" class="tarea-check" onchange="onTareaChange(); trackSubjectCompletion(this)" />
+              <span class="tarea-nombre" onclick="event.preventDefault(); event.stopPropagation(); pedirEjerciciosDe('Educación Física')" style="cursor:pointer;" title="Toca para pedirle ejercicios a Bro">Educación Física</span>
+              <button type="button" class="mastery-btn" data-subject="Educación Física" onclick="event.preventDefault(); cycleMastery(this)" title="¿Cómo lo llevas? Toca para cambiar">❔</button>
+              <span class="tarea-tiempo">15 min</span>
+            </label>
+            <label class="tarea-item">
+              <input type="checkbox" class="tarea-check" onchange="onTareaChange(); trackSubjectCompletion(this)" />
+              <span class="tarea-nombre" onclick="event.preventDefault(); event.stopPropagation(); pedirEjerciciosDe('Plástica')" style="cursor:pointer;" title="Toca para pedirle ejercicios a Bro">Plástica</span>
+              <button type="button" class="mastery-btn" data-subject="Plástica" onclick="event.preventDefault(); cycleMastery(this)" title="¿Cómo lo llevas? Toca para cambiar">❔</button>
+              <span class="tarea-tiempo">15 min</span>
+            </label>
+            <label class="tarea-item">
+              <input type="checkbox" class="tarea-check" onchange="onTareaChange(); trackSubjectCompletion(this)" />
+              <span class="tarea-nombre" onclick="event.preventDefault(); event.stopPropagation(); pedirEjerciciosDe('TIC')" style="cursor:pointer;" title="Toca para pedirle ejercicios a Bro">TIC</span>
+              <button type="button" class="mastery-btn" data-subject="TIC" onclick="event.preventDefault(); cycleMastery(this)" title="¿Cómo lo llevas? Toca para cambiar">❔</button>
+              <span class="tarea-tiempo">15 min</span>
+            </label>
+            <label class="tarea-item">
+              <input type="checkbox" class="tarea-check" onchange="onTareaChange(); trackSubjectCompletion(this)" />
+              <span class="tarea-nombre" onclick="event.preventDefault(); event.stopPropagation(); pedirEjerciciosDe('Valores')" style="cursor:pointer;" title="Toca para pedirle ejercicios a Bro">Valores</span>
+              <button type="button" class="mastery-btn" data-subject="Valores" onclick="event.preventDefault(); cycleMastery(this)" title="¿Cómo lo llevas? Toca para cambiar">❔</button>
+              <span class="tarea-tiempo">15 min</span>
+            </label>
+            <label class="tarea-item">
+              <input type="checkbox" class="tarea-check" onchange="onTareaChange(); trackSubjectCompletion(this)" />
+              <span class="tarea-nombre" onclick="event.preventDefault(); event.stopPropagation(); pedirEjerciciosDe('Optativa')" style="cursor:pointer;" title="Toca para pedirle ejercicios a Bro">Optativa</span>
+              <button type="button" class="mastery-btn" data-subject="Optativa" onclick="event.preventDefault(); cycleMastery(this)" title="¿Cómo lo llevas? Toca para cambiar">❔</button>
               <span class="tarea-tiempo">15 min</span>
             </label>
           </div>
@@ -185,22 +301,6 @@
             <div class="progreso-barra" id="progresoBarra"></div>
           </div>
           <p class="progreso-texto" id="progresoTexto">0 / 3 tareas</p>
-        </div>
-
-        <!-- Post-it Rosa: Horario del insti -->
-        <div class="postit postit-pink">
-          <div class="postit-pin"></div>
-          <div class="postit-header">
-            <span class="postit-icon">🎒</span>
-            <span class="postit-title">Mi horario</span>
-          </div>
-          <textarea
-            class="horario-textarea"
-            id="horarioTexto"
-            placeholder="Escribe tu horario, ej:&#10;Lunes: Mates, Lengua, Ed.Física&#10;Martes: Historia, Inglés..."
-            oninput="onHorarioInput()"
-          ></textarea>
-          <p class="horario-guardado" id="horarioGuardado">Guardado ✓</p>
         </div>
 
         <!-- Post-it Verde: Diario de clase -->
@@ -308,6 +408,7 @@
             <div class="timer-display">
               <span class="timer-digits" id="timerDigits">15:00</span>
             </div>
+            <img id="broAvatar" class="timer-bro-avatar" src="avatar/enfoque.gif" alt="Bro" />
           </div>
           <div class="timer-controls">
             <button class="timer-btn timer-btn-reset" onclick="resetTimer()" title="Reset">
@@ -343,13 +444,13 @@
 
         <div class="boss-card">
           <div class="boss-header">
-            <span class="boss-icon">👾</span>
-            <span class="boss-title">Jefes de examen</span>
+            <span class="boss-icon">📚</span>
+            <span class="boss-title">Preparar un examen</span>
           </div>
           <div class="bosses-list" id="bossesList">
-            <p class="boss-empty">Sin jefes activos</p>
+            <p class="boss-empty">Sin exámenes activos</p>
           </div>
-          <button class="boss-new-btn" onclick="nuevoJefe()">+ Nuevo jefe de examen</button>
+          <button class="boss-new-btn" onclick="nuevoJefe()">+ Nuevo examen</button>
         </div>
 
         <div class="spotify-card">

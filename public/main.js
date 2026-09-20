@@ -1,4 +1,4 @@
-/* =============================================
+﻿/* =============================================
    BRO DASHBOARD — MAIN.JS v2
    Mes 2: persistencia, bonus, memoria de Bro
    Mes 3: control real de Spotify (pausa automática)
@@ -241,8 +241,7 @@ function trackSubjectCompletion(checkbox) {
 }
 
 // ─── PEDIR EJERCICIOS DIRECTOS DESDE MISIONES ──
-async function pedirEjerciciosDe(el) {
-  const subject = el.textContent.trim();
+async function pedirEjerciciosDe(subject) {
   const input = document.getElementById('chatInput');
 
   if (!input || input.disabled) {
@@ -912,6 +911,7 @@ async function getBroReply(userText) {
         mood:    state.mood,
         history: state.chatHistory.slice(-10),
         studentState: studentState,
+        curso:   localStorage.getItem('bro_curso') || '2',
       }),
     });
 
@@ -932,7 +932,48 @@ async function getBroReply(userText) {
 }
 
 function formatSafeMessage(text) {
-  return escapeHtml(text).replace(/\n/g, '<br>');
+  // 1. Sacamos las fórmulas ANTES de escapar nada, y las renderizamos con KaTeX.
+  //    Se guardan en un array y se sustituyen por un marcador invisible que
+  //    escapeHtml no puede tocar (no contiene & < > ni * _).
+  const mathBlocks = [];
+
+  function extraerMath(str, regex, displayMode) {
+    return str.replace(regex, (match, expr) => {
+      let html;
+      try {
+        html = (typeof katex !== 'undefined')
+          ? katex.renderToString(expr, { throwOnError: false, displayMode })
+          : match; // si KaTeX no cargó por lo que sea, dejamos el texto tal cual
+      } catch (e) {
+        html = match;
+      }
+      const token = `\u0000MATH${mathBlocks.length}\u0000`;
+      mathBlocks.push(html);
+      return token;
+    });
+  }
+
+  let processed = text;
+  processed = extraerMath(processed, /\\\[([\s\S]+?)\\\]/g, true);   // \[ ... \]  (bloque)
+  processed = extraerMath(processed, /\$\$([\s\S]+?)\$\$/g, true);   // $$ ... $$  (bloque)
+  processed = extraerMath(processed, /\\\(([\s\S]+?)\\\)/g, false);  // \( ... \)  (en línea)
+
+  // 2. Escapamos el resto del texto — esto es lo que nos protege de que
+  //    Groq (o cualquier inyección) cuele HTML/JS real en el chat.
+  let safe = escapeHtml(processed);
+
+  // 3. Markdown ligero: solo negrita y cursiva, que es lo único que usa Bro.
+  safe = safe
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // 4. Saltos de línea.
+  safe = safe.replace(/\n/g, '<br>');
+
+  // 5. Volvemos a meter las fórmulas ya renderizadas por KaTeX.
+  safe = safe.replace(/\u0000MATH(\d+)\u0000/g, (m, i) => mathBlocks[Number(i)]);
+
+  return safe;
 }
 
 function escapeHtml(str) {
@@ -1087,44 +1128,124 @@ function saveBosses(bosses) {
   localStorage.setItem('bro_bosses', JSON.stringify(bosses));
 }
 
+function limpiarExamenesVencidos() {
+  const bosses = getBosses();
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+
+  const restantes = bosses.filter(b => {
+    if (!b.fechaExamen) return true;
+    const fechaEx = new Date(b.fechaExamen + 'T00:00:00');
+    const diasPasados = Math.round((hoy - fechaEx) / 86400000);
+    return diasPasados < 3;
+  });
+
+  if (restantes.length !== bosses.length) {
+    saveBosses(restantes);
+  }
+}
+
 function renderBoss() {
+  limpiarExamenesVencidos();
   const bosses = getBosses();
   const lista  = document.getElementById('bossesList');
   if (!lista) return;
 
   if (bosses.length === 0) {
-    lista.innerHTML = `<p class="boss-empty">Sin jefes activos</p>`;
+    lista.innerHTML = `<p class="boss-empty">Sin exámenes activos</p>`;
     return;
   }
 
   lista.innerHTML = bosses.map(b => {
     const pct = b.hpMax > 0 ? (b.hp / b.hpMax) * 100 : 0;
+    let diasTexto = '';
+    if (b.fechaExamen) {
+      const hoy = new Date(); hoy.setHours(0,0,0,0);
+      const fechaEx = new Date(b.fechaExamen + 'T00:00:00');
+      const dias = Math.round((fechaEx - hoy) / 86400000);
+      diasTexto = dias > 0 ? ` · quedan ${dias} día${dias === 1 ? '' : 's'}`
+                : dias === 0 ? ' · ¡es hoy!'
+                : ' · fecha pasada';
+    }
+    const tienequiz = Array.isArray(b.quiz) && b.quiz.length > 0;
+    const btnPracticar = tienequiz
+      ? `<button type="button" class="boss-practicar-btn" onclick="abrirQuiz(${b.id})">📝 Practicar</button>`
+      : '';
     return `
       <div class="boss-row">
         <div class="boss-row-header">
-          <span class="boss-row-name">${escapeHtml(b.name)}</span>
-          <button type="button" class="boss-delete-btn" onclick="eliminarJefe(${b.id})" title="Eliminar jefe" style="border:none;background:rgba(26,26,46,0.1);border-radius:50%;width:18px;height:18px;font-size:11px;line-height:1;cursor:pointer;color:rgba(26,26,46,0.5);flex-shrink:0;">✕</button>
-          <span class="boss-row-hp">${Math.max(b.hp, 0)}/${b.hpMax} HP</span>
+          <span class="boss-row-name">${escapeHtml(b.name)}${diasTexto}</span>
+          <button type="button" class="boss-delete-btn" onclick="eliminarJefe(${b.id})" title="Eliminar examen" style="border:none;background:rgba(26,26,46,0.1);border-radius:50%;width:18px;height:18px;font-size:11px;line-height:1;cursor:pointer;color:rgba(26,26,46,0.5);flex-shrink:0;">✕</button>
+          <span class="boss-row-hp">${Math.max(b.hp, 0)}/${b.hpMax} bloques</span>
         </div>
         <div class="boss-hp-wrap">
           <div class="boss-hp-bar" style="width:${Math.max(pct, 0)}%"></div>
         </div>
+        ${btnPracticar}
       </div>`;
   }).join('');
 }
 
 function nuevoJefe() {
-  const name = prompt('Nombre del examen/jefe (ej: "Jefe de Mates — Ecuaciones"):');
-  if (!name) return;
+  document.getElementById('nuevoExamenOverlay').classList.remove('hidden');
+  document.getElementById('examenTema').value = '';
+  document.getElementById('examenBloques').value = '6';
+  document.getElementById('examenFecha').value = '';
+  document.getElementById('examenLoadingText').classList.add('hidden');
+  document.getElementById('examenCrearBtn').disabled = false;
+}
 
-  let hp = parseInt(prompt('¿Cuántos bloques de estudio de 15 min necesita Mario para prepararlo? (esa será su HP)', '6'));
-  if (!hp || hp < 1) hp = 6;
+function cerrarNuevoExamenModal() {
+  document.getElementById('nuevoExamenOverlay').classList.add('hidden');
+}
 
+async function crearExamenDesdeModal() {
+  const asignatura = document.getElementById('examenAsignatura').value;
+  const asignaturaTexto = document.getElementById('examenAsignatura').selectedOptions[0].textContent;
+  const tema = document.getElementById('examenTema').value.trim();
+  let bloques = parseInt(document.getElementById('examenBloques').value);
+  if (!bloques || bloques < 1) bloques = 6;
+  const fechaExamen = document.getElementById('examenFecha').value || null;
+
+  if (!tema) {
+    alert('Escribe el tema del examen, bro.');
+    return;
+  }
+
+  const btnCrear = document.getElementById('examenCrearBtn');
+  const loadingText = document.getElementById('examenLoadingText');
+  btnCrear.disabled = true;
+  loadingText.classList.remove('hidden');
+
+  let preguntas = [];
+  try {
+    const response = await fetch('/generar-quiz', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ asignatura, tema }),
+    });
+    const data = await response.json();
+    if (response.ok && Array.isArray(data.preguntas)) {
+      preguntas = data.preguntas;
+    }
+  } catch (e) {
+    console.error('Error generando quiz:', e);
+  }
+
+  const nombreExamen = `${asignaturaTexto} — ${tema}`;
   const bosses = getBosses();
-  bosses.push({ id: Date.now(), name: name.trim(), hp, hpMax: hp });
+  bosses.push({ id: Date.now(), name: nombreExamen, hp: 0, hpMax: bloques, fechaExamen, quiz: preguntas });
   saveBosses(bosses);
   renderBoss();
-  addBroMessage(`👾 ¡Nuevo jefe detectado! "${name.trim()}" con ${hp} HP. Cada bloque de estudio le hace daño, Mario. ¡Vamos a por él!`);
+
+  btnCrear.disabled = false;
+  loadingText.classList.add('hidden');
+  cerrarNuevoExamenModal();
+
+  if (preguntas.length > 0) {
+    addBroMessage(`📚 ¡Nuevo examen apuntado! "${nombreExamen}" ya está en tu lista de la derecha, con test de práctica de ${preguntas.length} preguntas. Dale a 'Practicar' cuando quieras. ¡Vamos a por él!`);
+  } else {
+    addBroMessage(`📚 ¡Nuevo examen apuntado! "${nombreExamen}". No pude generar el test de práctica esta vez, pero puedes seguir sumando bloques igualmente.`);
+  }
 }
 
 function eliminarJefe(id) {
@@ -1146,9 +1267,9 @@ function danarJefe() {
 
   const derrotados = [];
   bosses.forEach(b => {
-    if (b.hp > 0) {
-      b.hp -= 1;
-      if (b.hp <= 0) derrotados.push(b);
+    if (b.hp < b.hpMax) {
+      b.hp += 1;
+      if (b.hp >= b.hpMax) derrotados.push(b);
     }
   });
 
@@ -1162,14 +1283,25 @@ function danarJefe() {
 
 function showBossDefeated(derrotados) {
   playSound('win');
+  celebrarAvatar(5000);
   derrotados.forEach(b => {
-    addBroMessage(`👾💥 ¡JEFE DERROTADO! Has machacado a "${b.name}", Mario. ¡De locos, literal! 🔥`);
+    addBroMessage(`📚✅ ¡Preparación completa! Ya has metido todos los bloques para "${b.name}", Mario. ¡Lo tienes dominado! 🔥`);
   });
 
   const idsDerrotados = derrotados.map(b => b.id);
   const bosses = getBosses().filter(b => !idsDerrotados.includes(b.id));
   saveBosses(bosses);
   renderBoss();
+}
+
+function celebrarAvatar(duracion = 4000) {
+  const avatar = document.getElementById('broAvatar');
+  if (!avatar) return;
+  avatar.src = 'avatar/celebracion.gif';
+  clearTimeout(avatar._celebrarTimeout);
+  avatar._celebrarTimeout = setTimeout(() => {
+    avatar.src = 'avatar/enfoque.gif';
+  }, duracion);
 }
 
 // ─── MONEDAS — ganadas por bloque, gastables en personalizar ─
@@ -1250,13 +1382,52 @@ function initColorGuardado() {
   if (key) aplicarColorAcento(key);
 }
 
+const HORARIO_SEMANAL = {
+  1: ['Física y Química', 'Matemáticas', 'Geografía e Historia', 'TIC', 'Optativa', 'Lengua Castellana'],
+  2: ['Inglés', 'Matemáticas', 'Educación Física', 'TIC'],
+  3: ['Valores', 'Educación Física', 'Inglés', 'Plástica', 'Lengua Castellana', 'TIC', 'Optativa'],
+  4: ['Física y Química', 'Inglés', 'Geografía e Historia', 'Educación Física', 'Lengua Castellana', 'Matemáticas'],
+  5: ['Inglés', 'Lengua Castellana', 'Física y Química', 'Plástica', 'Geografía e Historia', 'Matemáticas'],
+};
+
+function filtrarTareasPorHorario() {
+  const dia = new Date().getDay();
+  const asignaturasHoy = HORARIO_SEMANAL[dia];
+  if (!asignaturasHoy) return;
+
+  document.querySelectorAll('.tarea-item').forEach(item => {
+    const nombre = item.querySelector('.mastery-btn')?.dataset.subject;
+    item.style.display = (nombre && !asignaturasHoy.includes(nombre)) ? 'none' : '';
+  });
+}
+
+function esFindeSemana(fechaKey) {
+  const dia = new Date(fechaKey + 'T00:00:00').getDay();
+  return dia === 0 || dia === 6;
+}
+
+function getUltimoDiaRelevanteProgress() {
+  let fecha = new Date();
+  fecha.setDate(fecha.getDate() - 1);
+  for (let i = 0; i < 7; i++) {
+    const key = fecha.toISOString().split('T')[0];
+    const prog = safeGetStorage('bro_progress_' + key, null);
+    if (prog) return prog;
+    if (!esFindeSemana(key)) return null;
+    fecha.setDate(fecha.getDate() - 1);
+  }
+  return null;
+}
 function initTasks() {
-  state.totalTasks = document.querySelectorAll('.tarea-check').length;
+  filtrarTareasPorHorario();
+  const checksVisibles = Array.from(document.querySelectorAll('.tarea-check'))
+    .filter(c => c.closest('.tarea-item').style.display !== 'none');
+  state.totalTasks = checksVisibles.length;
 }
 
 function onTareaChange() {
   playSound('tarea_check');
-  const checks = document.querySelectorAll('.tarea-check');
+  const checks = Array.from(document.querySelectorAll('.tarea-check')).filter(c => c.closest('.tarea-item').style.display !== 'none');
   state.doneTasks = Array.from(checks).filter(c => c.checked).length;
   updateProgresoUI(state.doneTasks, state.totalTasks);
 
@@ -1293,7 +1464,7 @@ function onTareaChange() {
       }
     });
 
-    const ayer = getYesterdayProgress();
+    const ayer = getUltimoDiaRelevanteProgress();
     const streakActual = getStreak();
     let nuevaRacha;
     let comodinUsado = false;
@@ -1390,6 +1561,7 @@ function onPhaseEnd() {
     state.isStudying   = false;
     desbloquearLogro('velocista');
     danarJefe();
+    celebrarAvatar();
     awardCoins(10);
 
     const totalMin = parseInt(localStorage.getItem('bro_total_minutos') || '0');
@@ -1426,6 +1598,12 @@ function updateTimerDisplay() {
   const total  = state.timerPhase === 'focus' ? FOCUS_TIME : BREAK_TIME;
   const offset = ARC_TOTAL * (1 - state.timerSeconds / total);
   document.getElementById('timerArc').style.strokeDashoffset = offset;
+
+  const arcEl = document.getElementById('timerArc');
+  const total2 = state.timerPhase === 'focus' ? FOCUS_TIME : BREAK_TIME;
+  const restante = state.timerSeconds / total2;
+  arcEl.classList.toggle('timer-warn',   restante <= 0.5 && restante > 0.2);
+  arcEl.classList.toggle('timer-danger', restante <= 0.2);
 }
 
 function updateTimerTheme() {
@@ -1566,4 +1744,92 @@ function importarProgreso(input) {
   };
   reader.readAsText(file);
   input.value = '';
+}
+
+// ─── SELECTOR DE CURSO (1º-4º ESO) ───
+function seleccionarCurso(curso) {
+  localStorage.setItem('bro_curso', String(curso));
+  aplicarCursoSeleccionado();
+}
+
+function aplicarCursoSeleccionado() {
+  const curso = localStorage.getItem('bro_curso') || '2';
+  document.querySelectorAll('.curso-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.curso === curso);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', aplicarCursoSeleccionado);
+
+// ─── QUIZ DE PRÁCTICA POR EXAMEN ───────
+let quizActivo = { bossId: null, preguntas: [], indice: 0, respondida: false };
+
+function abrirQuiz(bossId) {
+  const bosses = getBosses();
+  const boss = bosses.find(b => b.id === bossId);
+  if (!boss || !Array.isArray(boss.quiz) || boss.quiz.length === 0) {
+    alert('Este examen no tiene test de práctica disponible.');
+    return;
+  }
+
+  quizActivo = { bossId, preguntas: boss.quiz, indice: 0, respondida: false };
+  document.getElementById('quizOverlay').classList.remove('hidden');
+  mostrarPreguntaQuiz();
+}
+
+function cerrarQuiz() {
+  document.getElementById('quizOverlay').classList.add('hidden');
+}
+
+function mostrarPreguntaQuiz() {
+  const p = quizActivo.preguntas[quizActivo.indice];
+  quizActivo.respondida = false;
+
+  document.getElementById('quizProgressText').textContent =
+    `Pregunta ${quizActivo.indice + 1}/${quizActivo.preguntas.length}`;
+  document.getElementById('quizQuestionText').textContent = p.pregunta;
+  document.getElementById('quizFeedback').textContent = '';
+  document.getElementById('quizNextBtn').classList.add('hidden');
+
+  const cont = document.getElementById('quizOptionsContainer');
+  cont.innerHTML = p.opciones.map((op, i) => `
+    <button type="button" class="quiz-option-btn" onclick="responderQuiz(${i})">${escapeHtml(op)}</button>
+  `).join('');
+}
+
+function responderQuiz(indiceElegido) {
+  if (quizActivo.respondida) return;
+  quizActivo.respondida = true;
+
+  const p = quizActivo.preguntas[quizActivo.indice];
+  const botones = document.querySelectorAll('#quizOptionsContainer .quiz-option-btn');
+  botones.forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === p.correcta) btn.classList.add('correcta');
+    else if (i === indiceElegido) btn.classList.add('incorrecta');
+  });
+
+  const feedback = document.getElementById('quizFeedback');
+  if (indiceElegido === p.correcta) {
+    feedback.textContent = '¡Correcto! 🔥';
+    feedback.style.color = '#34a853';
+  } else {
+    feedback.textContent = 'No era esa, bro.';
+    feedback.style.color = '#e94b4b';
+  }
+
+  document.getElementById('quizNextBtn').classList.remove('hidden');
+  if (quizActivo.indice >= quizActivo.preguntas.length - 1) {
+    document.getElementById('quizNextBtn').textContent = 'Terminar test';
+  }
+}
+
+function siguientePreguntaQuiz() {
+  if (quizActivo.indice >= quizActivo.preguntas.length - 1) {
+    cerrarQuiz();
+    addBroMessage('📚 ¡Test de práctica terminado! Buen repaso, Mario. Sigue con los bloques cuando quieras.');
+    return;
+  }
+  quizActivo.indice++;
+  mostrarPreguntaQuiz();
 }
