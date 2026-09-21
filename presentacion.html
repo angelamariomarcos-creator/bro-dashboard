@@ -220,6 +220,31 @@
     transition: width 0.25s ease;
     z-index: 10;
   }
+
+  /* ── Impresión / PDF: una diapositiva por página ── */
+  @page { size: 1280px 720px; margin: 0; }
+  @media print {
+    html, body {
+      height: auto;
+      overflow: visible;
+      background: var(--cement) !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .deck { width: auto; height: auto; }
+    .slide {
+      position: relative;
+      display: flex !important;
+      opacity: 1 !important;
+      width: 1280px;
+      height: 720px;
+      overflow: hidden;
+      break-after: page;
+      page-break-after: always;
+    }
+    .slide:last-child { break-after: auto; page-break-after: auto; }
+    .nav, .progress-track { display: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -283,7 +308,7 @@
       <div class="slide-eyebrow">06 · El tutor</div>
       <div class="slide-title">Chat con Bro</div>
       <div class="slide-body">
-        <p class="slide-text">Le pide un ejercicio de lo que le toque, y Bro se lo saca directamente del temario real de 2º de ESO — no algo inventado sobre la marcha.</p>
+        <p class="slide-text">Le pide un ejercicio de lo que le toque, y Bro se lo saca de una base curricular de 2º de ESO (versión inicial) — no algo inventado sobre la marcha.</p>
         <div class="slide-image-wrap"><img src="capturas-presentacion/07-chat-con-bro.png" alt="Chat con Bro" onerror="this.parentElement.outerHTML='&lt;div class=&quot;slide-image-wrap missing&quot;&gt;Falta 07-chat-con-bro.png&lt;/div&gt;'" /></div>
       </div>
     </section>

@@ -1316,3 +1316,351 @@ body {
   border: 3px solid var(--card-bg, #fff);
   box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
+
+/* =============================================
+   RESPONSIVE MÃ“VIL â€” aÃ±adido al final a propÃ³sito.
+   No modifica ninguna regla de escritorio: solo se activa
+   por debajo de 900px de ancho, y gana por ir al final del
+   archivo + por especificidad de media query.
+   ============================================= */
+
+@media (max-width: 900px) {
+
+  html, body {
+    height: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .app {
+    height: auto;
+    min-height: 100vh;
+    padding: 12px;
+    gap: 10px;
+  }
+
+  /* La rejilla de 3 columnas pasa a apilarse en vertical.
+     Usamos flex + order para que el chat con Bro aparezca
+     primero (es lo que se usa nada mÃ¡s entrar), y el resto
+     de post-its debajo. */
+  .grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow: visible;
+  }
+
+  .col {
+    overflow-y: visible;
+    max-height: none;
+    gap: 10px;
+  }
+
+  .col-left  { order: 2; }
+  .col-mid   { order: 1; }
+  .col-right { order: 3; }
+
+  /* El chat ya no ocupa toda la pantalla, altura fija razonable
+     con scroll interno propio (igual que en escritorio). */
+  .chat-container {
+    height: 70vh;
+    min-height: 420px;
+  }
+
+  /* Ocultamos el graffiti de fondo en mÃ³vil: en pantallas
+     pequeÃ±as solo aÃ±ade ruido visual y peso de carga, sin
+     aportar nada que se aprecie. */
+  .graffiti-layer {
+    display: none;
+  }
+
+  .app-header {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .header-mood-indicator {
+    margin-left: 0;
+  }
+
+  /* Timer un poco mÃ¡s compacto para que quepa bien */
+  .timer-visual {
+    width: 130px;
+    height: 130px;
+  }
+
+  .timer-digits {
+    font-size: 34px;
+  }
+
+  .timer-card {
+    padding: 16px 12px 12px;
+  }
+
+  /* El selector de Ã¡nimo, en vertical si no caben los 3 botones */
+  .mood-options {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .mood-btn {
+    min-width: 100px;
+    padding: 18px 20px;
+  }
+
+  .mood-question {
+    font-size: clamp(30px, 8vw, 44px);
+  }
+
+  /* Post-its: menos padding, texto ligeramente mÃ¡s compacto */
+  .postit {
+    padding: 14px 14px 16px;
+  }
+
+  .postit-title {
+    font-size: 18px;
+  }
+
+  /* Tarjetas de la columna derecha, mismo criterio */
+  .stats-card,
+  .boss-card,
+  .spotify-card,
+  .help-card {
+    padding: 12px 14px;
+  }
+
+  /* Botones tÃ¡ctiles: aseguramos un tamaÃ±o mÃ­nimo cÃ³modo */
+  .timer-btn,
+  .music-tab,
+  .mastery-btn,
+  .diario-delete-btn,
+  .boss-delete-btn {
+    min-width: 38px;
+    min-height: 38px;
+  }
+
+  /* Pantalla de victoria, algo mÃ¡s ajustada */
+  .win-title {
+    font-size: clamp(40px, 12vw, 70px);
+  }
+
+  .win-sub {
+    font-size: 15px;
+    padding: 0 12px;
+  }
+}
+
+/* Ajustes extra para mÃ³viles muy estrechos (la mayorÃ­a de
+   gama media/baja, 360-400px de ancho real) */
+@media (max-width: 420px) {
+
+  .header-logo {
+    font-size: 22px;
+  }
+
+  .mood-options {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mood-btn {
+    flex-direction: row;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .chat-input-area {
+    padding: 10px 12px;
+  }
+
+  .diario-select,
+  .horario-textarea {
+    font-size: 13px;
+  }
+}
+
+/* Safe area (notch / barra de gestos) â€” requiere que el <meta viewport>
+   tenga viewport-fit=cover; ver instrucciones aparte para aÃ±adirlo. */
+@media (max-width: 900px) {
+  .app {
+    padding-top: calc(12px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(12px + env(safe-area-inset-left, 0px));
+    padding-right: calc(12px + env(safe-area-inset-right, 0px));
+  }
+}
+
+
+/* =============================================
+   RESPONSIVE MÃ“VIL â€” aÃ±adido al final a propÃ³sito.
+   No modifica ninguna regla de escritorio: solo se activa
+   por debajo de 900px de ancho, y gana por ir al final del
+   archivo + por especificidad de media query.
+   ============================================= */
+
+@media (max-width: 900px) {
+
+  html, body {
+    height: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .app {
+    height: auto;
+    min-height: 100vh;
+    padding: 12px;
+    gap: 10px;
+  }
+
+  /* La rejilla de 3 columnas pasa a apilarse en vertical.
+     Usamos flex + order para que el chat con Bro aparezca
+     primero (es lo que se usa nada mÃ¡s entrar), y el resto
+     de post-its debajo. */
+  .grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow: visible;
+  }
+
+  .col {
+    overflow-y: visible;
+    max-height: none;
+    gap: 10px;
+  }
+
+  .col-left  { order: 2; }
+  .col-mid   { order: 1; }
+  .col-right { order: 3; }
+
+  /* El chat ya no ocupa toda la pantalla, altura fija razonable
+     con scroll interno propio (igual que en escritorio). */
+  .chat-container {
+    height: 70vh;
+    min-height: 420px;
+  }
+
+  /* Ocultamos el graffiti de fondo en mÃ³vil: en pantallas
+     pequeÃ±as solo aÃ±ade ruido visual y peso de carga, sin
+     aportar nada que se aprecie. */
+  .graffiti-layer {
+    display: none;
+  }
+
+  .app-header {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .header-mood-indicator {
+    margin-left: 0;
+  }
+
+  /* Timer un poco mÃ¡s compacto para que quepa bien */
+  .timer-visual {
+    width: 130px;
+    height: 130px;
+  }
+
+  .timer-digits {
+    font-size: 34px;
+  }
+
+  .timer-card {
+    padding: 16px 12px 12px;
+  }
+
+  /* El selector de Ã¡nimo, en vertical si no caben los 3 botones */
+  .mood-options {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .mood-btn {
+    min-width: 100px;
+    padding: 18px 20px;
+  }
+
+  .mood-question {
+    font-size: clamp(30px, 8vw, 44px);
+  }
+
+  /* Post-its: menos padding, texto ligeramente mÃ¡s compacto */
+  .postit {
+    padding: 14px 14px 16px;
+  }
+
+  .postit-title {
+    font-size: 18px;
+  }
+
+  /* Tarjetas de la columna derecha, mismo criterio */
+  .stats-card,
+  .boss-card,
+  .spotify-card,
+  .help-card {
+    padding: 12px 14px;
+  }
+
+  /* Botones tÃ¡ctiles: aseguramos un tamaÃ±o mÃ­nimo cÃ³modo */
+  .timer-btn,
+  .music-tab,
+  .mastery-btn,
+  .diario-delete-btn,
+  .boss-delete-btn {
+    min-width: 38px;
+    min-height: 38px;
+  }
+
+  /* Pantalla de victoria, algo mÃ¡s ajustada */
+  .win-title {
+    font-size: clamp(40px, 12vw, 70px);
+  }
+
+  .win-sub {
+    font-size: 15px;
+    padding: 0 12px;
+  }
+}
+
+/* Ajustes extra para mÃ³viles muy estrechos (la mayorÃ­a de
+   gama media/baja, 360-400px de ancho real) */
+@media (max-width: 420px) {
+
+  .header-logo {
+    font-size: 22px;
+  }
+
+  .mood-options {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mood-btn {
+    flex-direction: row;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .chat-input-area {
+    padding: 10px 12px;
+  }
+
+  .diario-select,
+  .horario-textarea {
+    font-size: 13px;
+  }
+}
+
+/* Safe area (notch / barra de gestos) â€” requiere que el <meta viewport>
+   tenga viewport-fit=cover; ver instrucciones aparte para aÃ±adirlo. */
+@media (max-width: 900px) {
+  .app {
+    padding-top: calc(12px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(12px + env(safe-area-inset-left, 0px));
+    padding-right: calc(12px + env(safe-area-inset-right, 0px));
+  }
+}
+
