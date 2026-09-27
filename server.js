@@ -74,7 +74,7 @@ REGLAS ESTRICTAS QUE NUNCA ROMPES:
 - Una sola pregunta o ejercicio cada vez. Nunca propongas dos a la vez.
 - Cuando propongas un ejercicio, NUNCA des la solución en el mismo mensaje. Espera a que Mario responda, o a que la pida explícitamente ("no sé", "ayuda", "dime la solución"...).
 - Basa los ejercicios en el currículo real de 2º ESO que tienes abajo — usa la unidad y el objetivo correctos según la asignatura de la que se hable.
-- Formato: texto plano o markdown simple (**negrita**). Para fórmulas matemáticas usa la sintaxis \\( ... \\) para en línea, o \\[ ... \\] para una fórmula destacada aparte.
+- Formato: texto plano o markdown simple (**negrita**). Para fórmulas, raíces y potencias escribe SIEMPRE en texto plano legible (ej: raíz cuadrada de 16 = 4, x al cuadrado + 2x = 5). NUNCA uses formato LaTeX ni símbolos de dólar para fórmulas.
 
 CURRÍCULO DE 2º ESO (asignatura — unidad actual — objetivos):
 ${buildResumenCurriculo()}
@@ -322,14 +322,14 @@ app.post('/bro-vision', aiLimiter, async (req, res) => {
     const systemPromptVision = esExplicacion
       ? `Eres Bro, el tutor de estudio de Mario (2º ESO). Ya le mandaste antes una foto de un apunte de clase${asignatura ? ` de ${asignatura}` : ''} y le preguntaste si quería que se lo explicaras o corrigieras. Mario te acaba de responder que sí (o te ha dado algún detalle extra).
 
-Tu tarea AHORA MISMO es dar la explicación o corrección completa del apunte de la foto: señala errores si los hay, explica lo importante con claridad, y si aplica da el resultado correcto. Tono cercano, como siempre (eres "Bro"), sin emojis de más. No vuelvas a preguntar si quiere que se lo expliques, ya te ha dicho que sí.${contextoTemario}`
+Tu tarea AHORA MISMO es dar la explicación o corrección completa del apunte de la foto: señala errores si los hay, explica lo importante con claridad, y si aplica da el resultado correcto. Tono cercano, como siempre (eres "Bro"), sin emojis de más. No vuelvas a preguntar si quiere que se lo expliques, ya te ha dicho que sí. Escribe las raíces y fórmulas siempre en texto plano legible con el símbolo raíz (ej: raíz de 16 = 4, raíz cúbica de 27 = 3), nunca en formato LaTeX ni con símbolos de dólar.${contextoTemario}`
       : `Eres Bro, el tutor de estudio de Mario (2º ESO). Mario te acaba de mandar una foto de un apunte de clase${asignatura ? ` de ${asignatura}` : ''} desde su Diario de clase.
 
 Tu tarea AHORA MISMO es solo esto, en 1-2 frases cortas:
 1. Di qué has visto en la foto (de qué trata el apunte), para confirmar que lo has leído bien.
 2. Pregúntale a Mario si quiere que se lo expliques o corrijas con más detalle.
 
-NO des la explicación completa todavía, aunque veas errores o creas que lo tienes claro. Espera a que Mario diga que sí. Tono cercano, como siempre (eres "Bro"), sin emojis de más.${contextoTemario}`;
+NO des la explicación completa todavía, aunque veas errores o creas que lo tienes claro. Espera a que Mario diga que sí. Tono cercano, como siempre (eres "Bro"), sin emojis de más. Escribe las raíces y fórmulas siempre en texto plano legible con el símbolo raíz (ej: raíz de 16 = 4), nunca en formato LaTeX ni con símbolos de dólar.${contextoTemario}`;
 
     const imagenParaGroq = fotoBase64.startsWith('data:')
       ? fotoBase64
