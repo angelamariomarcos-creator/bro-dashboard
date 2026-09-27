@@ -293,7 +293,7 @@ async function verificarGroqKey() {
 // ─── ENDPOINT DE VISIÓN — Bro analiza fotos del Diario de clase ───
 app.post('/bro-vision', aiLimiter, async (req, res) => {
   try {
-    const { fotoBase64, asignatura, texto, curso } = req.body || {};
+    const { fotoBase64, asignatura, texto, curso, fase } = req.body || {};
 
     if (!fotoBase64 || typeof fotoBase64 !== 'string') {
       return res.status(400).json({ reply: 'No me ha llegado ninguna foto, bro.' });
@@ -317,7 +317,13 @@ app.post('/bro-vision', aiLimiter, async (req, res) => {
       }
     } catch (e) { /* si curriculo no tiene esa forma, seguimos sin contexto extra */ }
 
-    const systemPromptVision = `Eres Bro, el tutor de estudio de Mario (2º ESO). Mario te acaba de mandar una foto de un apunte de clase${asignatura ? ` de ${asignatura}` : ''} desde su Diario de clase.
+    const esExplicacion = fase === 'explicacion';
+
+    const systemPromptVision = esExplicacion
+      ? `Eres Bro, el tutor de estudio de Mario (2º ESO). Ya le mandaste antes una foto de un apunte de clase${asignatura ? ` de ${asignatura}` : ''} y le preguntaste si quería que se lo explicaras o corrigieras. Mario te acaba de responder que sí (o te ha dado algún detalle extra).
+
+Tu tarea AHORA MISMO es dar la explicación o corrección completa del apunte de la foto: señala errores si los hay, explica lo importante con claridad, y si aplica da el resultado correcto. Tono cercano, como siempre (eres "Bro"), sin emojis de más. No vuelvas a preguntar si quiere que se lo expliques, ya te ha dicho que sí.${contextoTemario}`
+      : `Eres Bro, el tutor de estudio de Mario (2º ESO). Mario te acaba de mandar una foto de un apunte de clase${asignatura ? ` de ${asignatura}` : ''} desde su Diario de clase.
 
 Tu tarea AHORA MISMO es solo esto, en 1-2 frases cortas:
 1. Di qué has visto en la foto (de qué trata el apunte), para confirmar que lo has leído bien.

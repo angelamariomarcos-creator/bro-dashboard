@@ -873,8 +873,12 @@ async function sendMessage() {
 
   addUserMessage(text);
   try {
-    const reply = await getBroReply(text);
-    addBroMessage(reply);
+    if (apunteEnEspera) {
+      await pedirExplicacionApunte(text);
+    } else {
+      const reply = await getBroReply(text);
+      addBroMessage(reply);
+    }
   } finally {
     input.disabled = false;
     if (btnSend) btnSend.disabled = false;
@@ -1851,6 +1855,8 @@ function addUserMessageConFoto(texto, fotoBase64) {
 }
 
 // ─── DIARIO DE CLASE → CHAT: pedir análisis de la foto a Bro ───
+let apunteEnEspera = null; // { fotoBase64, asignatura } o null
+
 async function pedirAnalisisApunte(asignatura, texto, fotoBase64) {
   const msgs = document.getElementById('chatMessages');
   if (msgs) msgs.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1866,6 +1872,32 @@ async function pedirAnalisisApunte(asignatura, texto, fotoBase64) {
         asignatura,
         texto,
         curso: localStorage.getItem('bro_curso') || '2',
+        fase: 'inicial',
+      }),
+    });
+
+    if (!response.ok) throw new Error('Error servidor');
+    const data = await response.json();
+    addBroMessage(data.reply);
+    apunteEnEspera = { fotoBase64, asignatura };
+  } catch (error) {
+    console.error('Error Bro (vision):', error);
+    addBroMessage('Ey Mario, me he colgado un momento mirando la foto. ¿Me la vuelves a mandar? 🤙');
+    apunteEnEspera = null;
+  }
+}
+
+async function pedirExplicacionApunte(textoRespuesta) {
+  try {
+    const response = await fetch('/bro-vision', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fotoBase64: apunteEnEspera.fotoBase64,
+        asignatura: apunteEnEspera.asignatura,
+        texto: textoRespuesta,
+        curso: localStorage.getItem('bro_curso') || '2',
+        fase: 'explicacion',
       }),
     });
 
@@ -1873,8 +1905,10 @@ async function pedirAnalisisApunte(asignatura, texto, fotoBase64) {
     const data = await response.json();
     addBroMessage(data.reply);
   } catch (error) {
-    console.error('Error Bro (vision):', error);
-    addBroMessage('Ey Mario, me he colgado un momento mirando la foto. ¿Me la vuelves a mandar? 🤙');
+    console.error('Error Bro (explicacion):', error);
+    addBroMessage('Ey Mario, me he colgado intentando revisar la foto otra vez. ¿Me la vuelves a mandar? 🤙');
+  } finally {
+    apunteEnEspera = null;
   }
 }
 
