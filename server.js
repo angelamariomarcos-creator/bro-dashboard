@@ -126,7 +126,7 @@ app.post('/generar-quiz', aiLimiter, async (req, res) => {
     const infoAsignatura = curriculo[asignatura];
     const nombreAsignatura = infoAsignatura ? infoAsignatura.nombre : asignatura;
 
-    const promptQuiz = `Eres un generador de tests educativos para 2º de ESO. Genera EXACTAMENTE 10 preguntas tipo test sobre "${tema.trim()}" en la asignatura de ${nombreAsignatura}, con dificultad apropiada para un alumno de 13-14 años.
+    const promptQuiz = `Eres un generador de tests educativos para 2º de ESO. Genera EXACTAMENTE 10 preguntas tipo test sobre "${tema.trim()}" en la asignatura de ${nombreAsignatura}, con dificultad apropiada para un alumno de 13-14 años. En las preguntas y en las opciones, escribe SIEMPRE las raíces, fórmulas y potencias en texto plano legible (ej: "raíz de 16 = 4", "x al cuadrado + 2x"), NUNCA uses LaTeX ni símbolos como \\sqrt{} o $.
 
 Responde ÚNICAMENTE con un JSON válido, sin texto adicional antes ni después, con esta estructura exacta:
 {
